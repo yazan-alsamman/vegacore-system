@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* VegaCore brand — from visual/Vega Core - Logo File.ai */
+@theme {
+  --font-brand: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-vega-black: #231F20;
+  --color-vega-navy: #2E3192;
+  --color-vega-blue: #2B3990;
+  --color-vega-cyan: #00AEEF;
+  --color-vega-red: #ED1C24;
+  --color-vega-green: #00A651;
+  --color-vega-magenta: #EC008C;
+  --color-vega-yellow: #FFF200;
+  --color-vega-gold: #F7B040;
+  --color-vega-teal: #00A79D;
+
+  --color-primary-50: #eef4fc;
+  --color-primary-100: #d9e8f8;
+  --color-primary-200: #b3d1f1;
+  --color-primary-300: #7eb5e8;
+  --color-primary-400: #4a94db;
+  --color-primary-500: #2E3192;
+  --color-primary-600: #252a7a;
+  --color-primary-700: #1e2263;
+  --color-primary-800: #181b4f;
+  --color-primary-900: #12143d;
+
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f7f8fc;
+  --color-surface-elevated: #ffffff;
+  --color-border: #dde2ef;
+  --color-text: #231F20;
+  --color-text-secondary: #5c6478;
+
+  --vega-navy: #2E3192;
+  --vega-cyan: #00AEEF;
+  --vega-red: #ED1C24;
+  --vega-green: #00A651;
+  --vega-gradient: linear-gradient(135deg, #2E3192 0%, #00AEEF 100%);
+  --vega-gradient-accent: linear-gradient(90deg, #ED1C24, #EC008C, #2E3192, #00AEEF, #00A651);
+}
+
+.dark {
+  --color-surface: #0f1220;
+  --color-surface-secondary: #15192a;
+  --color-surface-elevated: #1a1f35;
+  --color-border: #2a3050;
+  --color-text: #f0f2f8;
+  --color-text-secondary: #8e97b0;
+}
+
+body {
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text);
+  font-family: var(--font-brand);
+}
+
+/* Brand utilities */
+.bg-vega-gradient {
+  background: var(--vega-gradient);
+}
+
+.bg-vega-hero {
+  background: linear-gradient(160deg, #1a1f4e 0%, #2E3192 45%, #1e3a6e 70%, #00AEEF 100%);
+}
+
+.text-gradient-vega {
+  background: var(--vega-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-vega-accent {
+  border-image: var(--vega-gradient-accent) 1;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vega-cyan);
+}
+
+/* Focus ring — brand cyan */
+:focus-visible {
+  outline: 2px solid var(--vega-cyan);
+  outline-offset: 2px;
+}
