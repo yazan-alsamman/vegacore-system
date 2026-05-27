@@ -21,11 +21,14 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const onResize = () => {
       if (window.innerWidth >= 1024) setOpen(false);
     };
+    onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 1024;
+    if (!isMobile) return;
     document.body.style.overflow = open ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';

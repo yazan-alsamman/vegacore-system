@@ -58,11 +58,11 @@ export function Sidebar() {
 
       <aside
         className={clsx(
-          'fixed inset-y-0 start-0 z-50 flex w-[min(100vw-3rem,17rem)] sm:w-64 flex-col bg-vega-hero text-white shadow-xl transition-transform duration-300 ease-out lg:translate-x-0',
-          'lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
+          'fixed inset-y-0 start-0 z-50 flex w-[min(100vw-3rem,17rem)] sm:w-64 flex-col bg-vega-hero text-white shadow-xl transition-transform duration-300 ease-out',
+          /* Desktop (lg+): always visible. Mobile: slide in/out only */
+          open ? 'translate-x-0' : 'max-lg:-translate-x-full max-lg:rtl:translate-x-full',
         )}
-        aria-hidden={!open}
+        aria-hidden={!open ? true : undefined}
       >
         <HexPattern />
         <div className="relative z-10 flex items-center justify-between border-b border-white/10 px-4 py-4">
