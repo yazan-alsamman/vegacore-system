@@ -21,7 +21,7 @@ const displayFont = Playfair_Display({
 export const metadata: Metadata = {
   title: 'VegaCore OS',
   description: 'VegaCore Operating System - Enterprise ERP/CRM Platform',
-  icons: { icon: '/brand/logo.jpg' },
+  icons: { icon: '/brand/logo.png' },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

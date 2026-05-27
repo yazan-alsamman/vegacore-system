@@ -4,7 +4,8 @@ Colors and logo extracted from `visual/Vega Core - Logo File.ai`.
 
 ## Logo
 
-- **File:** `apps/web/public/brand/logo.jpg` (from `visual/Vega Core - Logo.jpg`)
+- **Login:** `apps/web/public/brand/logo.png` (from `visual/Vega Core - Logo.png`)
+- **Sidebar (after login):** `apps/web/public/brand/logo-white.png` (from `visual/Vega Core - Logo (White).png`)
 - **Source:** `visual/Vega Core - Logo File.ai`
 - **Usage:** Sidebar, login hero, favicon
 

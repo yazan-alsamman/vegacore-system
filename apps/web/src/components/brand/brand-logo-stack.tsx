@@ -7,6 +7,7 @@ interface BrandLogoStackProps {
   className?: string;
 }
 
+/** Login page — standard logo on light background */
 export function BrandLogoStack({ size = 'lg', align = 'end', className }: BrandLogoStackProps) {
   const width = size === 'lg' ? 260 : 200;
 
@@ -22,7 +23,7 @@ export function BrandLogoStack({ size = 'lg', align = 'end', className }: BrandL
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={brand.logo}
+        src={brand.logoLogin}
         alt="VegaCore"
         width={width}
         className="block h-auto object-contain"

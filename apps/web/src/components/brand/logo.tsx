@@ -3,7 +3,7 @@ import { brand } from '@/lib/brand';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
-  /** White card behind logo — for dark backgrounds (sidebar) */
+  /** Sidebar / dark background — uses white wordmark */
   onDark?: boolean;
   className?: string;
 }
@@ -14,21 +14,15 @@ const WIDTH = {
   lg: 220,
 } as const;
 
-/** Full VegaCore wordmark from /brand/logo.jpg (icon + VEGA CORE text). */
 export function Logo({ size = 'md', onDark = false, className }: LogoProps) {
   const width = WIDTH[size];
+  const src = onDark ? brand.logoSidebar : brand.logoLogin;
 
   return (
-    <div
-      className={clsx(
-        'inline-flex items-center justify-center',
-        onDark && 'rounded-xl bg-white px-3 py-2 shadow-md',
-        className,
-      )}
-    >
+    <div className={clsx('inline-flex items-center justify-center', className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={brand.logo}
+        src={src}
         alt="VegaCore"
         width={width}
         height={Math.round(width * 0.55)}
