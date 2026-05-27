@@ -17,6 +17,8 @@ import {
   parseFileSections,
 } from './file-sections';
 
+type InvoiceWithPayments = Prisma.InvoiceGetPayload<{ include: { payments: true } }>;
+
 @Injectable()
 export class ClientsService {
   constructor(
@@ -109,8 +111,10 @@ export class ClientsService {
     });
     if (!client) throw new NotFoundException('Client not found');
 
-    const invoices = canFinance && 'invoices' in client ? client.invoices : [];
-    const subscriptions = canFinance && 'subscriptions' in client ? client.subscriptions : [];
+    const invoices: InvoiceWithPayments[] =
+      canFinance && 'invoices' in client ? (client.invoices as InvoiceWithPayments[]) : [];
+    const subscriptions =
+      canFinance && 'subscriptions' in client ? client.subscriptions : [];
 
     const auditLogs = await this.prisma.auditLog.findMany({
       where: { entity: 'client', entityId: id },
@@ -123,34 +127,42 @@ export class ClientsService {
     const fileSections = parseFileSections(client.assetFileSections);
     const assetsByType = this.groupAssetsByType(client.assets, fileSections);
 
-    const totalInvoiced = invoices.reduce((s, i) => s + i.total, 0);
-    const totalPaid = invoices.reduce(
-      (s, inv) =>
-        s + inv.payments.filter((p) => p.status === 'COMPLETED').reduce((ps, p) => ps + p.amount, 0),
-      0,
-    );
+    const totalInvoiced = canFinance ? invoices.reduce((s, i) => s + i.total, 0) : 0;
+    const totalPaid = canFinance
+      ? invoices.reduce(
+          (s, inv) =>
+            s +
+            inv.payments
+              .filter((p) => p.status === 'COMPLETED')
+              .reduce((ps, p) => ps + p.amount, 0),
+          0,
+        )
+      : 0;
     const remaining = Math.max(0, totalInvoiced - totalPaid);
 
-    const payments = invoices
-      .flatMap((inv) =>
-        inv.payments
-          .filter((p) => p.status === 'COMPLETED')
-          .map((p) => ({
-            id: p.id,
-            amount: p.amount,
-            method: p.method,
-            reason: p.reason,
-            reference: p.reference,
-            paidAt: p.paidAt,
-            createdAt: p.createdAt,
-            invoiceId: inv.id,
-            invoiceNumber: inv.number,
-          })),
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.paidAt || b.createdAt).getTime() - new Date(a.paidAt || a.createdAt).getTime(),
-      );
+    const payments = canFinance
+      ? invoices
+          .flatMap((inv) =>
+            inv.payments
+              .filter((p) => p.status === 'COMPLETED')
+              .map((p) => ({
+                id: p.id,
+                amount: p.amount,
+                method: p.method,
+                reason: p.reason,
+                reference: p.reference,
+                paidAt: p.paidAt,
+                createdAt: p.createdAt,
+                invoiceId: inv.id,
+                invoiceNumber: inv.number,
+              })),
+          )
+          .sort(
+            (a, b) =>
+              new Date(b.paidAt || b.createdAt).getTime() -
+              new Date(a.paidAt || a.createdAt).getTime(),
+          )
+      : [];
 
     const renewalDate =
       subscriptions.find((s) => s.isActive)?.nextDue ||
