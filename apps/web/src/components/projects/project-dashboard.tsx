@@ -567,7 +567,7 @@ export function ProjectDashboard({
           <FormField label={tp('progress')}>
             <TextInput type="number" min={0} max={100} value={phaseForm.progress} onChange={(e) => setPhaseForm({ ...phaseForm, progress: e.target.value })} />
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tt('priority')}>
               <SelectInput value={phaseForm.priority} onChange={(e) => setPhaseForm({ ...phaseForm, priority: e.target.value })}>
                 <option value="LOW">LOW</option>

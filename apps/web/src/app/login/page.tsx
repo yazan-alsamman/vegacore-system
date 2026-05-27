@@ -1,21 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
+import { ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { BrandLogoStack } from '@/components/brand/brand-logo-stack';
-import { HexOutlinePattern } from '@/components/brand/hex-outline-pattern';
-import { DashboardMockups } from '@/components/brand/dashboard-mockups';
+import { brand } from '@/lib/brand';
+import { LoginBackground } from '@/components/brand/login-background';
+import { LoginIntro } from '@/components/brand/login-intro';
+
+const MODULES = [
+  { key: 'CRM', color: '#00AEEF' },
+  { key: 'Projects', color: '#2E3192' },
+  { key: 'Marketing', color: '#EC008C' },
+  { key: 'Finance', color: '#00A651' },
+  { key: 'HR', color: '#F7B040' },
+  { key: 'AI', color: '#662D91' },
+];
 
 export default function LoginPage() {
   const t = useTranslations('auth');
   const locale = useLocale();
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@vegasystem.local');
-  const [password, setPassword] = useState('Admin@123');
+  const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleIntroComplete = useCallback(() => setReady(true), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,90 +43,143 @@ export default function LoginPage() {
     }
   };
 
-  const modules = ['CRM', 'Projects', 'Marketing', 'Media', 'Finance', 'HR', 'AI'];
-
   return (
-    <div className={clsx('flex min-h-screen bg-white', locale === 'ar' && 'flex-row-reverse')}>
-      {/* Login — left */}
-      <div className="flex w-full lg:w-[42%] flex-col justify-center px-8 py-12 sm:px-14 lg:px-16">
-        <div className="lg:hidden mb-10">
-          <BrandLogoStack size="md" align="start" />
-        </div>
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#0b0e18] text-white">
+      {!ready && <LoginIntro onComplete={handleIntroComplete} />}
 
-        <div className="w-full max-w-sm">
-          <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[#231F20] tracking-tight">
-            {t('welcome')}
-          </h1>
-          <p className="mt-2 text-sm text-[#5c6478]">{t('loginSubtitle')}</p>
+      <LoginBackground />
 
-          <form onSubmit={handleSubmit} className="mt-10 space-y-5">
-            {error && (
-              <div className="rounded-lg bg-vega-red/8 border border-vega-red/20 px-4 py-3 text-sm text-vega-red">
-                {error}
-              </div>
-            )}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5c6478] mb-2">
-                {t('email')}
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-b border-[#dde2ef] bg-transparent px-0 py-2.5 text-sm text-[#231F20] placeholder:text-[#8e97b0] focus:outline-none focus:border-vega-navy transition-colors"
-                placeholder="name@company.com"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5c6478] mb-2">
-                {t('password')}
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-b border-[#dde2ef] bg-transparent px-0 py-2.5 text-sm text-[#231F20] focus:outline-none focus:border-vega-navy transition-colors"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-4 bg-[#231F20] text-white py-3.5 text-sm font-semibold tracking-wide hover:bg-vega-navy transition-colors disabled:opacity-50"
-            >
-              {loading ? t('signingIn') : t('login')}
-            </button>
-          </form>
-
-          <p className="mt-8 text-[11px] text-[#8e97b0]">{t('demoHint')}</p>
-        </div>
-      </div>
-
-      {/* Brand panel — right (matches visual identity) */}
-      <div className="relative hidden lg:flex lg:w-[58%] flex-col justify-between bg-white px-14 py-12 overflow-hidden">
-        <HexOutlinePattern className="absolute top-0 end-0 w-48 h-44 pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col items-end text-end ms-auto max-w-xl w-full gap-10 pt-4">
-          <DashboardMockups />
-
-          <BrandLogoStack size="lg" align="end" />
-
-          <div className="space-y-4">
-            <h2 className="font-[family-name:var(--font-display)] text-4xl xl:text-[2.75rem] font-normal text-[#231F20] leading-[1.15] tracking-tight">
-              Enterprise Operating System
+      <div
+        className={clsx(
+          'relative z-10 flex min-h-[100dvh] flex-col lg:flex-row transition-opacity duration-700',
+          locale === 'ar' && 'lg:flex-row-reverse',
+          ready ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
+      >
+        {/* Brand panel — desktop */}
+        <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col justify-center px-12 xl:px-20 py-16">
+          <div className="login-stagger-1 max-w-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={brand.logoSidebar}
+              alt="VegaCore"
+              width={220}
+              className="mb-8 h-auto w-[200px] opacity-95 drop-shadow-[0_0_40px_rgba(0,174,239,0.35)]"
+            />
+            <h2 className="font-[family-name:var(--font-display)] text-4xl xl:text-5xl font-medium leading-[1.12] tracking-tight text-white">
+              Enterprise
+              <span className="block text-gradient-vega">Operating System</span>
             </h2>
-            <p className="text-sm text-[#5c6478] leading-relaxed max-w-md ms-auto">
-              {t('tagline')}
-            </p>
-            <p className="text-xs text-[#8e97b0] tracking-wide">
-              {modules.join(' · ')}
-            </p>
+            <p className="mt-5 text-base leading-relaxed text-white/60">{t('tagline')}</p>
           </div>
 
-          <div className="space-y-6 pt-4">
-            <DashboardMockups />
-            <BrandLogoStack size="md" align="end" />
+          <div className="login-stagger-2 mt-12 flex flex-wrap gap-2">
+            {MODULES.map((m, i) => (
+              <span
+                key={m.key}
+                className="login-module-pill rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold tracking-wide backdrop-blur-md"
+                style={{
+                  animationDelay: `${i * 80}ms`,
+                  borderColor: `${m.color}33`,
+                  boxShadow: `0 0 20px ${m.color}22`,
+                }}
+              >
+                <span className="me-1.5 inline-block h-1.5 w-1.5 rounded-full" style={{ background: m.color }} />
+                {m.key}
+              </span>
+            ))}
+          </div>
+
+          <div className="login-stagger-3 mt-14 flex items-center gap-4 text-white/40 text-xs">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <Sparkles className="h-4 w-4 text-vega-cyan" />
+            <span className="tracking-widest uppercase">VegaCore OS</span>
+            <Sparkles className="h-4 w-4 text-vega-cyan" />
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          </div>
+        </div>
+
+        {/* Login card */}
+        <div className="flex flex-1 items-center justify-center p-5 sm:p-8 lg:p-12">
+          <div className="login-stagger-2 w-full max-w-md">
+            {/* Mobile logo */}
+            <div className="login-stagger-1 mb-8 flex justify-center lg:hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={brand.logoSidebar}
+                alt="VegaCore"
+                width={180}
+                className="h-auto w-[160px] opacity-95"
+              />
+            </div>
+
+            <div className="login-card-shine rounded-2xl border border-white/10 bg-white/[0.07] p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
+              <div className="login-stagger-3 mb-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-vega-cyan">
+                  VegaCore OS
+                </p>
+                <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+                  {t('welcome')}
+                </h1>
+                <p className="mt-2 text-sm text-white/55">{t('loginSubtitle')}</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div className="login-stagger-4 rounded-xl border border-vega-red/30 bg-vega-red/10 px-4 py-3 text-sm text-red-200 animate-[login-fade-up_0.4s_ease-out]">
+                    {error}
+                  </div>
+                )}
+
+                <div className="login-stagger-4 space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+                    <Mail className="h-3.5 w-3.5 text-vega-cyan" />
+                    {t('email')}
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/30 outline-none transition-all focus:border-vega-cyan/60 focus:bg-white/10 focus:ring-2 focus:ring-vega-cyan/25"
+                    placeholder="name@company.com"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div className="login-stagger-5 space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+                    <Lock className="h-3.5 w-3.5 text-vega-cyan" />
+                    {t('password')}
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/30 outline-none transition-all focus:border-vega-cyan/60 focus:bg-white/10 focus:ring-2 focus:ring-vega-cyan/25"
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="login-stagger-5 group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-vega-cyan/25 active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ background: brand.gradient.primary }}
+                >
+                  <span className="relative z-10">
+                    {loading ? t('signingIn') : t('login')}
+                  </span>
+                  {!loading && (
+                    <ArrowRight className="relative z-10 h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+                  )}
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                </button>
+              </form>
+
+              <p className="login-stagger-5 mt-6 text-center text-[11px] text-white/35">{t('demoHint')}</p>
+            </div>
           </div>
         </div>
       </div>

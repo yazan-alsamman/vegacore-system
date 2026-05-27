@@ -209,7 +209,7 @@ export default function TasksPage() {
               ))}
             </SelectInput>
           </FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={tt('status')}>
               <SelectInput value={form.status} onChange={(e) => set('status', e.target.value)}>
                 <option value="TODO">TODO</option>

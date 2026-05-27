@@ -374,7 +374,7 @@ export function ClientInfoEditor({
           <FormField label={tc('company')} required>
             <TextInput value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required />
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tc('phone')}>
               <TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </FormField>
@@ -382,7 +382,7 @@ export function ClientInfoEditor({
               <TextInput type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </FormField>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tc('country')}>
               <TextInput value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
             </FormField>
@@ -575,7 +575,7 @@ export function PackageEditor({
               placeholder="social, design, development"
             />
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tc('reelsQuota')}>
               <TextInput type="number" value={form.reelsQuota} onChange={(e) => setForm({ ...form, reelsQuota: e.target.value })} />
             </FormField>
@@ -592,7 +592,7 @@ export function PackageEditor({
           <FormField label={tc('hostingType')}>
             <TextInput value={form.hostingType} onChange={(e) => setForm({ ...form, hostingType: e.target.value })} />
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tc('contractStart')}>
               <TextInput type="date" value={form.contractStart} onChange={(e) => setForm({ ...form, contractStart: e.target.value })} />
             </FormField>

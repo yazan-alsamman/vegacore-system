@@ -194,7 +194,7 @@ export default function ModelsPage() {
             </FormField>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField label={t('firstName')} required>
                   <TextInput value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} required />
                 </FormField>

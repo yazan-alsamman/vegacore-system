@@ -194,7 +194,7 @@ export default function AiPage() {
                   <FormField label={t('topic')}>
                     <TextInput value={form.topic} onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))} placeholder={t('topicPlaceholder')} />
                   </FormField>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField label={t('platform')}>
                       <SelectInput value={form.platform} onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}>
                         <option value="instagram">Instagram</option>

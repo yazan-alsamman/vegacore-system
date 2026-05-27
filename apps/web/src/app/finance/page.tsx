@@ -754,7 +754,7 @@ export default function FinancePage() {
               {(data?.clients || []).map((c) => <option key={c.id} value={c.id}>{c.companyName}</option>)}
             </SelectInput>
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('amount')} required><TextInput type="number" step="0.01" value={invoiceForm.amount} onChange={(e) => setInvoiceForm((f) => ({ ...f, amount: e.target.value }))} required /></FormField>
             <FormField label={t('tax')}><TextInput type="number" step="0.01" value={invoiceForm.tax} onChange={(e) => setInvoiceForm((f) => ({ ...f, tax: e.target.value }))} /></FormField>
           </div>
@@ -763,7 +763,7 @@ export default function FinancePage() {
               {SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
             </SelectInput>
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={tc('status')}>
               <SelectInput value={invoiceForm.status} onChange={(e) => setInvoiceForm((f) => ({ ...f, status: e.target.value }))}>
                 {INVOICE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -789,7 +789,7 @@ export default function FinancePage() {
       <Modal open={expenseOpen} onClose={() => setExpenseOpen(false)} title={editingExpense ? t('editExpense') : t('addExpense')}>
         <form className="space-y-4" onSubmit={saveExpense}>
           <FormField label={t('expenseTitle')} required><TextInput value={expenseForm.title} onChange={(e) => setExpenseForm((f) => ({ ...f, title: e.target.value }))} required /></FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('amount')} required><TextInput type="number" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))} required /></FormField>
             <FormField label={t('category')}><TextInput value={expenseForm.category} onChange={(e) => setExpenseForm((f) => ({ ...f, category: e.target.value }))} /></FormField>
           </div>
@@ -811,7 +811,7 @@ export default function FinancePage() {
             </SelectInput>
           </FormField>
           <FormField label={t('subscriptionName')} required><TextInput value={subForm.name} onChange={(e) => setSubForm((f) => ({ ...f, name: e.target.value }))} required /></FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('amount')} required><TextInput type="number" value={subForm.amount} onChange={(e) => setSubForm((f) => ({ ...f, amount: e.target.value }))} required /></FormField>
             <FormField label={t('interval')}>
               <SelectInput value={subForm.interval} onChange={(e) => setSubForm((f) => ({ ...f, interval: e.target.value }))}>
@@ -837,7 +837,7 @@ export default function FinancePage() {
               {(data?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
             </SelectInput>
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('amount')} required><TextInput type="number" value={payrollForm.amount} onChange={(e) => setPayrollForm((f) => ({ ...f, amount: e.target.value }))} required /></FormField>
             <FormField label={t('period')} required><TextInput value={payrollForm.period} onChange={(e) => setPayrollForm((f) => ({ ...f, period: e.target.value }))} placeholder="2026-05" required /></FormField>
           </div>

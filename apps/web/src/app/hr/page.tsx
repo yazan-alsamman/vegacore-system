@@ -6,7 +6,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DataTable } from '@/components/data-table';
 import { Modal } from '@/components/ui/modal';
 import { PageHeader } from '@/components/ui/page-header';
-import { FormField, TextInput, SelectInput, FormActions } from '@/components/ui/form-fields';
+import { FormField, FormGrid, TextInput, SelectInput, FormActions } from '@/components/ui/form-fields';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/lib/auth-context';
@@ -166,14 +166,14 @@ export default function HrPage() {
       <Modal open={open} onClose={() => setOpen(false)} title={th('addEmployee')}>
         <form onSubmit={save} className="space-y-4 max-h-[70vh] overflow-y-auto pe-1">
           {error && <div className="text-sm text-vega-red">{error}</div>}
-          <div className="grid grid-cols-2 gap-3">
+          <FormGrid>
             <FormField label={th('firstName')} required>
               <TextInput value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
             </FormField>
             <FormField label={th('lastName')} required>
               <TextInput value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
             </FormField>
-          </div>
+          </FormGrid>
           <FormField label={th('email')} required>
             <TextInput type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           </FormField>

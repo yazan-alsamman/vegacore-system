@@ -247,7 +247,7 @@ export default function ArchivePage() {
       <PageHeader description={t('description')} actionLabel="" onAction={() => {}} showAction={false} />
 
       {stats && (
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+        <div className="mb-6 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard title={t('totalFiles')} value={stats.totalAssets} icon={Archive} />
           <StatCard title={t('archivedProjects')} value={stats.projectsArchived} icon={FolderArchive} />
           <StatCard title={t('contracts')} value={stats.contracts} icon={FileText} />
@@ -282,7 +282,7 @@ export default function ArchivePage() {
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
           <SelectInput value={clientId} onChange={(e) => setClientId(e.target.value)} className="text-sm">
             <option value="">{t('allClients')}</option>
             {(data?.clients || []).map((c) => <option key={c.id} value={c.id}>{c.companyName}</option>)}
@@ -479,7 +479,7 @@ export default function ArchivePage() {
           </FormField>
           <FormField label={t('fileUrl')} required><TextInput value={uploadForm.fileUrl} onChange={(e) => setUploadForm((f) => ({ ...f, fileUrl: e.target.value }))} required placeholder="https://..." /></FormField>
           <FormField label={t('tags')}><TextInput value={uploadForm.tags} onChange={(e) => setUploadForm((f) => ({ ...f, tags: e.target.value }))} placeholder={t('tagsHint')} /></FormField>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('client')}>
               <SelectInput value={uploadForm.clientId} onChange={(e) => setUploadForm((f) => ({ ...f, clientId: e.target.value }))}>
                 <option value="">—</option>

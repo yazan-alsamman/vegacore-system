@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { RequireModule } from '@/components/auth/require-module';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import { SidebarProvider } from './sidebar-context';
 
 export function DashboardLayout({
   children,
@@ -15,7 +16,6 @@ export function DashboardLayout({
 }: {
   children: React.ReactNode;
   title: string;
-  /** RBAC module slug — hides page if user lacks `module.read` */
   module?: string;
 }) {
   const { user, loading } = useAuth();
@@ -43,14 +43,16 @@ export function DashboardLayout({
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-secondary)]">
-      <Sidebar />
-      <div className="ps-64 min-h-screen">
-        <Header title={title} />
-        <main className="p-6">
-          {module ? <RequireModule module={module}>{children}</RequireModule> : children}
-        </main>
+    <SidebarProvider>
+      <div className="min-h-[100dvh] bg-[var(--color-surface-secondary)]">
+        <Sidebar />
+        <div className="min-h-[100dvh] lg:ps-64">
+          <Header title={title} />
+          <main className="p-4 sm:p-5 lg:p-6 max-w-[100vw] overflow-x-hidden">
+            {module ? <RequireModule module={module}>{children}</RequireModule> : children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageSquare, Send, Users } from 'lucide-react';
+import { ArrowRight, MessageSquare, Send, Users } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
@@ -60,7 +60,13 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState<'rooms' | 'team'>('rooms');
+  const [mobileChat, setMobileChat] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const selectRoom = (roomId: string) => {
+    setActiveRoomId(roomId);
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileChat(true);
+  };
 
   const loadWorkspace = useCallback(async () => {
     if (!token) return;
@@ -112,7 +118,7 @@ export default function ChatPage() {
       body: JSON.stringify({ userId: memberId }),
     });
     await loadWorkspace();
-    setActiveRoomId(room.id);
+    selectRoom(room.id);
     setTab('rooms');
     await loadMessages(room.id);
   };
@@ -140,8 +146,12 @@ export default function ChatPage() {
     <DashboardLayout title={t('title')} module="chat">
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{t('description')}</p>
 
-      <div className="flex h-[calc(100vh-12rem)] min-h-[420px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <aside className="flex w-full max-w-xs flex-col border-e border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+      <div className="flex h-[min(720px,calc(100dvh-10rem))] min-h-[360px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <aside
+          className={`flex w-full max-w-full flex-col border-e border-[var(--color-border)] bg-[var(--color-surface-secondary)] lg:max-w-xs lg:flex ${
+            mobileChat ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
           <div className="flex border-b border-[var(--color-border)]">
             <button
               type="button"
@@ -170,7 +180,7 @@ export default function ChatPage() {
                   <li key={room.id}>
                     <button
                       type="button"
-                      onClick={() => setActiveRoomId(room.id)}
+                      onClick={() => selectRoom(room.id)}
                       className={`flex w-full gap-3 rounded-lg px-3 py-2.5 text-start transition-colors ${
                         activeRoomId === room.id ? 'bg-vega-navy/10 dark:bg-vega-cyan/15' : 'hover:bg-[var(--color-surface)]'
                       }`}
@@ -221,11 +231,19 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col">
+        <section className={`flex min-w-0 flex-1 flex-col ${!mobileChat ? 'hidden lg:flex' : 'flex'}`}>
           {activeRoom ? (
             <>
-              <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
-                <MessageSquare className="h-5 w-5 text-vega-cyan" />
+              <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-3 py-3 sm:px-5">
+                <button
+                  type="button"
+                  onClick={() => setMobileChat(false)}
+                  className="rounded-lg p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] lg:hidden shrink-0"
+                  aria-label={t('conversations')}
+                >
+                  <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+                </button>
+                <MessageSquare className="h-5 w-5 text-vega-cyan shrink-0" />
                 <div>
                   <h2 className="font-semibold text-sm">{roomTitle(activeRoom, user.id, t('teamChannel'))}</h2>
                   <p className="text-[11px] text-[var(--color-text-secondary)]">
@@ -267,7 +285,7 @@ export default function ChatPage() {
               </div>
 
               <form
-                className="flex gap-2 border-t border-[var(--color-border)] p-4"
+                className="flex gap-2 border-t border-[var(--color-border)] p-3 sm:p-4 safe-bottom"
                 onSubmit={(e) => {
                   e.preventDefault();
                   send();

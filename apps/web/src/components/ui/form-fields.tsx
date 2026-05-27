@@ -35,6 +35,11 @@ export function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>
   return <select className={inputClass} {...props} />;
 }
 
+/** Two-column form row — stacks on mobile */
+export function FormGrid({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={clsx('grid grid-cols-1 gap-3 sm:grid-cols-2', className)}>{children}</div>;
+}
+
 export function FormActions({
   onCancel,
   submitLabel,
@@ -47,7 +52,7 @@ export function FormActions({
   loading?: boolean;
 }) {
   return (
-    <div className="flex gap-3 pt-2">
+    <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:gap-3">
       <button
         type="button"
         onClick={onCancel}

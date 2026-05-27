@@ -125,7 +125,7 @@ export default function DashboardPage() {
     <DashboardLayout title={t('title')} module="dashboard">
       <p className="mb-6 text-[var(--color-text-secondary)]">{t('description')}</p>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 mb-6">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 mb-6">
         <StatCard title={t('totalProjects')} value={overview?.totalProjects ?? 0} icon={FolderKanban} variant="navy" />
         <StatCard title={t('delayedTasks')} value={overview?.delayedTasks ?? 0} icon={AlertTriangle} variant="warning" />
         <StatCard title={t('delayedProjects')} value={overview?.delayedProjects ?? 0} icon={Clock} variant="danger" />
@@ -139,7 +139,7 @@ export default function DashboardPage() {
         <StatCard title={t('busyEmployees')} value={overview?.busyEmployeesCount ?? 0} icon={Users} variant="cyan" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard title={t('monthlyRevenue')} value={money(overview?.monthlyRevenue ?? 0)} icon={DollarSign} variant="success" />
         <StatCard title={t('overduePayments')} value={money(overview?.overdueAmount ?? 0)} icon={AlertTriangle} variant="danger" />
         <StatCard title={t('activeClients')} value={overview?.activeClients ?? 0} icon={Briefcase} />

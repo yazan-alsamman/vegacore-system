@@ -283,7 +283,7 @@ export function ModelProfile({ modelId, data, token, onRefresh }: {
             )}
           </Card>
           <Card title={t('measurements')} icon={Ruler}>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               {Object.entries(data.measurements).map(([k, v]) => (
                 <div key={k}><dt className="text-[var(--color-text-secondary)] capitalize">{k}</dt><dd className="font-medium">{v}</dd></div>
               ))}
@@ -430,7 +430,7 @@ export function ModelProfile({ modelId, data, token, onRefresh }: {
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title={t('editProfile')}>
         <form className="space-y-4 max-h-[70vh] overflow-y-auto" onSubmit={saveProfile}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('firstName')} required><TextInput value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} required /></FormField>
             <FormField label={t('lastName')} required><TextInput value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} required /></FormField>
           </div>
@@ -438,7 +438,7 @@ export function ModelProfile({ modelId, data, token, onRefresh }: {
           <FormField label={t('bio')}><TextArea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} /></FormField>
           <FormField label={t('contentTypes')}><TextInput value={form.contentTypes} onChange={(e) => setForm((f) => ({ ...f, contentTypes: e.target.value }))} placeholder={t('contentTypesHint')} /></FormField>
           <p className="text-sm font-semibold">{t('measurements')}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('height')}><TextInput value={form.height} onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))} /></FormField>
             <FormField label={t('bust')}><TextInput value={form.bust} onChange={(e) => setForm((f) => ({ ...f, bust: e.target.value }))} /></FormField>
             <FormField label={t('waist')}><TextInput value={form.waist} onChange={(e) => setForm((f) => ({ ...f, waist: e.target.value }))} /></FormField>
@@ -447,7 +447,7 @@ export function ModelProfile({ modelId, data, token, onRefresh }: {
             <FormField label={t('hair')}><TextInput value={form.hair} onChange={(e) => setForm((f) => ({ ...f, hair: e.target.value }))} /></FormField>
           </div>
           <p className="text-sm font-semibold">{t('rates')}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label={t('hourly')}><TextInput value={form.hourly} onChange={(e) => setForm((f) => ({ ...f, hourly: e.target.value }))} /></FormField>
             <FormField label={t('halfDay')}><TextInput value={form.halfDay} onChange={(e) => setForm((f) => ({ ...f, halfDay: e.target.value }))} /></FormField>
             <FormField label={t('fullDay')}><TextInput value={form.fullDay} onChange={(e) => setForm((f) => ({ ...f, fullDay: e.target.value }))} /></FormField>
@@ -588,7 +588,7 @@ function MediaSection({
       {!items.length ? (
         <p className="text-sm text-[var(--color-text-secondary)]">{empty}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {items.map((item, i) => (
             <div key={i} className="group relative rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface-secondary)] aspect-[3/4]">
               <a href={item.url} target="_blank" rel="noreferrer" className="flex h-full flex-col items-center justify-center hover:border-vega-cyan transition-colors">

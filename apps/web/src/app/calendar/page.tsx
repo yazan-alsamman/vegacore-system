@@ -160,7 +160,7 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-center text-[11px] font-semibold text-[var(--color-text-secondary)]">
+          <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-center text-[9px] sm:text-[11px] font-semibold text-[var(--color-text-secondary)]">
             {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((d) => (
               <div key={d} className="py-2">{t(`weekdays.${d}`)}</div>
             ))}
@@ -174,7 +174,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-7">
               {gridDays.map((day, i) => {
                 if (!day) {
-                  return <div key={`empty-${i}`} className="min-h-[88px] border-b border-e border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40" />;
+                  return <div key={`empty-${i}`} className="min-h-[56px] sm:min-h-[72px] lg:min-h-[88px] border-b border-e border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40" />;
                 }
                 const key = dayKey(day);
                 const dayEvents = eventsByDay[key] || [];
@@ -186,7 +186,7 @@ export default function CalendarPage() {
                     key={key}
                     type="button"
                     onClick={() => setSelectedDay(key)}
-                    className={`min-h-[88px] border-b border-e border-[var(--color-border)] p-1.5 text-start transition-colors hover:bg-[var(--color-surface-secondary)] ${
+                    className={`min-h-[56px] sm:min-h-[72px] lg:min-h-[88px] border-b border-e border-[var(--color-border)] p-1.5 text-start transition-colors hover:bg-[var(--color-surface-secondary)] ${
                       isSelected ? 'bg-vega-cyan/10 ring-1 ring-inset ring-vega-cyan/40' : ''
                     }`}
                   >

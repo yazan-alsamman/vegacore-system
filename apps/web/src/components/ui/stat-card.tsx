@@ -22,12 +22,12 @@ export function StatCard({ title, value, icon: Icon, trend, variant = 'default' 
   const v = variants[variant];
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm transition-shadow hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6 shadow-sm transition-shadow hover:shadow-md">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-vega-gradient opacity-0 transition-opacity group-hover:opacity-100" />
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">{title}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
+          <p className="mt-1 sm:mt-2 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight break-words">{value}</p>
           {trend && <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{trend}</p>}
         </div>
         <div className={clsx('rounded-xl border p-3', v.bg, v.text, v.border)}>

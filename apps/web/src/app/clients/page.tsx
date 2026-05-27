@@ -207,7 +207,7 @@ export default function ClientsPage() {
           <FormField label={tc('owner')} required>
             <TextInput value={form.ownerName} onChange={(e) => set('ownerName', e.target.value)} required />
           </FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={tc('email')}>
               <TextInput type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
             </FormField>
@@ -215,7 +215,7 @@ export default function ClientsPage() {
               <TextInput value={form.phone} onChange={(e) => set('phone', e.target.value)} />
             </FormField>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={tc('country')}>
               <TextInput value={form.country} onChange={(e) => set('country', e.target.value)} />
             </FormField>

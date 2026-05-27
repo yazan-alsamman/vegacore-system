@@ -141,13 +141,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
 
       {data && client && token && (
         <>
-          <div className="mb-6 flex flex-wrap gap-2 border-b border-[var(--color-border)] pb-1">
+          <div className="mb-6 flex gap-2 overflow-x-auto border-b border-[var(--color-border)] pb-1 -mx-1 px-1 scrollbar-thin">
             {tabs.map((tb) => (
               <button
                 key={tb.id}
                 type="button"
                 onClick={() => setTab(tb.id)}
-                className={`rounded-t-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`shrink-0 whitespace-nowrap rounded-t-lg px-3 py-2 sm:px-4 text-sm font-medium transition-colors ${
                   tab === tb.id
                     ? 'bg-vega-navy text-white dark:bg-vega-cyan dark:text-vega-navy'
                     : 'text-[var(--color-text-secondary)] hover:bg-vega-navy/5'

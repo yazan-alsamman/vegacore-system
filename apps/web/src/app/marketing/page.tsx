@@ -176,7 +176,7 @@ export default function MarketingPage() {
         showAction={canCreate(tab === 'calendar' ? 'marketing' : 'media')}
       />
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <button onClick={() => setTab('calendar')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'calendar' ? 'bg-vega-cyan/15 text-vega-cyan' : 'bg-[var(--color-surface-secondary)]'}`}>{t('tabCalendar')}</button>
         <button onClick={() => setTab('shoots')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'shoots' ? 'bg-vega-cyan/15 text-vega-cyan' : 'bg-[var(--color-surface-secondary)]'}`}>{t('tabShoots')}</button>
         <button onClick={() => setTab('reels')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'reels' ? 'bg-vega-cyan/15 text-vega-cyan' : 'bg-[var(--color-surface-secondary)]'}`}>{t('tabReels')}</button>
@@ -263,7 +263,7 @@ export default function MarketingPage() {
           <FormField label={t('idea')} required><TextInput value={calendarForm.idea} onChange={(e) => setCalendarForm((f) => ({ ...f, idea: e.target.value }))} required /></FormField>
           <FormField label={tc('title')} required><TextInput value={calendarForm.title} onChange={(e) => setCalendarForm((f) => ({ ...f, title: e.target.value }))} required /></FormField>
           <FormField label={t('script')}><TextArea value={calendarForm.script} onChange={(e) => setCalendarForm((f) => ({ ...f, script: e.target.value }))} /></FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={tc('platform')}><TextInput value={calendarForm.platform} onChange={(e) => setCalendarForm((f) => ({ ...f, platform: e.target.value }))} /></FormField>
             <FormField label={t('publishDate')}><TextInput type="date" value={calendarForm.publishDate} onChange={(e) => setCalendarForm((f) => ({ ...f, publishDate: e.target.value }))} /></FormField>
           </div>
@@ -296,7 +296,7 @@ export default function MarketingPage() {
               {availableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </SelectInput>
           </FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={t('shootDate')}><TextInput type="datetime-local" value={shootForm.scheduledAt} onChange={(e) => setShootForm((f) => ({ ...f, scheduledAt: e.target.value }))} /></FormField>
             <FormField label={tc('location')}><TextInput value={shootForm.location} onChange={(e) => setShootForm((f) => ({ ...f, location: e.target.value }))} /></FormField>
           </div>
