@@ -1,0 +1,33 @@
+---
+description: Commit and push to GitHub immediately after every completed code change
+alwaysApply: true
+---
+
+# Auto-push after changes
+
+When the user asks for a code/config change and you finish implementing it, **commit and push to the repo in the same turn** — do not wait for a separate "push" request.
+
+## Repository
+
+- Remote: `https://github.com/yazan-alsamman/vegacore-system.git`
+- Branch: `main`
+
+## Workflow (after each completed task)
+
+1. `git status` and `git diff` — review what changed.
+2. Stage only project files related to the task (never `.env`, credentials, or local-only folders like `restart/` unless the user asks).
+3. Commit with a short message focused on **why** (1 sentence).
+4. `git push origin main`
+5. Tell the user the commit hash and that push succeeded.
+
+## Skip auto-push only when
+
+- The user explicitly says not to push, or asks a question with no file changes.
+- There are no changes to commit.
+- Push fails (report the error; do not force-push).
+
+## Do not
+
+- Force-push to `main`.
+- Amend commits unless the user asks and the commit was not pushed yet.
+- Commit secrets (`.env`, keys, passwords).
