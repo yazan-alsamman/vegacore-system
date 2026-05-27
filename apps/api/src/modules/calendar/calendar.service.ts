@@ -28,6 +28,11 @@ export class CalendarService {
     return permissions.includes('*') || permissions.includes(slug);
   }
 
+  private marketingClientLink(metadata: unknown): string {
+    const clientId = (metadata as { clientId?: string } | null)?.clientId;
+    return clientId ? `/clients/${clientId}?tab=marketing` : '/clients';
+  }
+
   private range(from?: string, to?: string) {
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
@@ -218,7 +223,7 @@ export class CalendarService {
         description: c.platform ? `${c.platform} · ${c.status}` : c.status,
         start: c.publishDate.toISOString(),
         allDay: true,
-        link: '/marketing',
+        link: this.marketingClientLink(c.metadata),
         status: c.status,
       });
     }
@@ -237,7 +242,7 @@ export class CalendarService {
           description: c.platform ? `${c.platform} · ${c.status}` : c.status,
           start: c.publishDate.toISOString(),
           allDay: true,
-          link: '/marketing',
+          link: this.marketingClientLink(c.metadata),
           status: c.status,
         });
       }

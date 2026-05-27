@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
@@ -64,6 +64,10 @@ export class MarketingService {
     modelId?: string; campaignId?: string;
     metadata?: Record<string, unknown>;
   }) {
+    const meta = (data.metadata || {}) as Record<string, unknown>;
+    if (!meta.clientId) {
+      throw new BadRequestException('metadata.clientId is required for content calendar items');
+    }
     const payload: Prisma.ContentCalendarUncheckedCreateInput = {
       title: data.title,
       script: data.script,
@@ -72,7 +76,7 @@ export class MarketingService {
       status: data.status,
       modelId: data.modelId,
       campaignId: data.campaignId,
-      metadata: data.metadata as Prisma.InputJsonValue,
+      metadata: meta as Prisma.InputJsonValue,
     };
     return this.prisma.contentCalendar.create({
       data: payload,
@@ -111,7 +115,10 @@ export class MarketingService {
   }
 
   createScript(data: { title: string; content: string; clientId?: string; platform?: string }) {
-    return this.prisma.script.create({ data });
+    if (!data.clientId) {
+      throw new BadRequestException('clientId is required for scripts');
+    }
+    return this.prisma.script.create({ data: { ...data, clientId: data.clientId } });
   }
 
   async updateScript(id: string, data: Record<string, unknown>) {

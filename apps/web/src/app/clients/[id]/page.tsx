@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   AddFileSectionButton,
@@ -16,13 +17,14 @@ import {
   useClientFinancialEditor,
 } from '@/components/clients/client-profile-editors';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { MarketingWorkspace } from '@/components/marketing/marketing-workspace';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { fileSectionTitle, type FileSection } from '@/lib/client-file-sections';
 import { formatMoney } from '@/lib/money';
 import type { SocialLinksMap } from '@/lib/social-links';
 
-type Tab = 'info' | 'package' | 'files' | 'history' | 'financial';
+type Tab = 'info' | 'package' | 'files' | 'history' | 'marketing' | 'financial';
 
 interface ClientProfile {
   client: Record<string, unknown>;
@@ -100,8 +102,17 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
   const { canRead } = usePermissions();
+  const searchParams = useSearchParams();
   const { data, loading, error, refetch, token } = useApiData<ClientProfile>(`/clients/${id}/profile`);
   const [tab, setTab] = useState<Tab>('info');
+
+  const canMarketingTab = canRead('marketing') || canRead('media');
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'marketing' && canMarketingTab) {
+      setTab('marketing');
+    }
+  }, [searchParams, canMarketingTab]);
 
   const client = data?.client;
   const pkg = data?.package;
@@ -115,6 +126,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
     { id: 'package', label: tc('tabPackage') },
     { id: 'files', label: tc('tabFiles') },
     { id: 'history', label: tc('tabHistory') },
+    ...(canMarketingTab ? [{ id: 'marketing' as Tab, label: tc('tabMarketing') }] : []),
     ...(canRead('finance') ? [{ id: 'financial' as Tab, label: tc('tabFinancial') }] : []),
   ];
 
@@ -327,6 +339,10 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
               })}
               </div>
             </div>
+          )}
+
+          {tab === 'marketing' && canMarketingTab && (
+            <MarketingWorkspace clientId={id} />
           )}
 
           {tab === 'history' && (
