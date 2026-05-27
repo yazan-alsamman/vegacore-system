@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import clsx from 'clsx';
+import { brand } from '@/lib/brand';
 
 interface BrandLogoStackProps {
   size?: 'md' | 'lg';
@@ -8,7 +9,8 @@ interface BrandLogoStackProps {
 }
 
 export function BrandLogoStack({ size = 'lg', align = 'end', className }: BrandLogoStackProps) {
-  const iconSize = size === 'lg' ? 48 : 36;
+  const width = size === 'lg' ? 240 : 180;
+  const height = size === 'lg' ? 72 : 54;
 
   return (
     <div
@@ -21,25 +23,15 @@ export function BrandLogoStack({ size = 'lg', align = 'end', className }: BrandL
       )}
     >
       <Image
-        src="/brand/logo.png"
+        src={brand.logo}
         alt="VegaCore"
-        width={iconSize * 2}
-        height={iconSize * 2}
-        className="object-contain"
-        style={{ width: iconSize, height: iconSize }}
+        width={width * 2}
+        height={height * 2}
+        className="h-auto object-contain"
+        style={{ width, maxHeight: height }}
         priority
       />
-      <div>
-        <p
-          className={clsx(
-            'font-bold tracking-[0.2em] text-[#231F20] leading-none',
-            size === 'lg' ? 'text-lg' : 'text-base',
-          )}
-        >
-          VEGACORE
-        </p>
-        <p className="mt-1 text-[11px] text-[#5c6478] tracking-wide">Operating System</p>
-      </div>
+      <p className="text-[11px] text-[#5c6478] tracking-wide">Operating System</p>
     </div>
   );
 }

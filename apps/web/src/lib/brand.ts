@@ -1,7 +1,8 @@
 /**
- * VegaCore brand tokens — extracted from visual/Vega Core - Logo File.ai
+ * VegaCore brand tokens — visual/Vega Core - Logo.jpg
  */
 export const brand = {
+  logo: '/brand/logo.jpg',
   colors: {
     black: '#231F20',
     white: '#FFFFFF',

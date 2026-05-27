@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import clsx from 'clsx';
+import { brand } from '@/lib/brand';
 
 interface LogoProps {
   variant?: 'default' | 'light' | 'icon';
@@ -9,30 +10,34 @@ interface LogoProps {
 }
 
 const SIZES = {
-  sm: { icon: 32, text: 'text-sm' },
-  md: { icon: 40, text: 'text-base' },
-  lg: { icon: 56, text: 'text-xl' },
+  sm: { width: 128, height: 40 },
+  md: { width: 160, height: 48 },
+  lg: { width: 200, height: 60 },
 };
 
-export function Logo({ variant = 'default', size = 'md', showText = true, className }: LogoProps) {
+export function Logo({ variant = 'default', size = 'md', showText = false, className }: LogoProps) {
   const s = SIZES[size];
+
   const isLight = variant === 'light';
 
   return (
     <div className={clsx('flex items-center gap-3', className)}>
       <div
         className={clsx(
-          'relative flex-shrink-0 overflow-hidden rounded-xl',
-          variant === 'icon' && 'rounded-lg',
+          'flex items-center',
+          isLight && 'rounded-lg bg-white px-2 py-1 shadow-sm',
         )}
-        style={{ width: s.icon, height: s.icon }}
       >
         <Image
-          src="/brand/logo.png"
+          src={brand.logo}
           alt="VegaCore"
-          width={s.icon * 2}
-          height={s.icon * 2}
-          className="h-full w-full object-contain"
+          width={s.width * 2}
+          height={s.height * 2}
+          className={clsx(
+            'h-auto w-auto max-h-full object-contain object-start',
+            variant === 'icon' && 'max-w-[40px]',
+          )}
+          style={{ maxWidth: s.width, maxHeight: s.height }}
           priority
         />
       </div>
@@ -40,18 +45,12 @@ export function Logo({ variant = 'default', size = 'md', showText = true, classN
         <div className="min-w-0">
           <p
             className={clsx(
-              'font-bold tracking-[0.12em] leading-tight',
-              s.text,
-              isLight ? 'text-white' : 'text-[var(--color-text)]',
+              'font-bold tracking-[0.12em] leading-tight text-sm',
+              variant === 'light' ? 'text-white' : 'text-[var(--color-text)]',
             )}
           >
             VEGA<span className="text-[var(--vega-cyan)]">CORE</span>
           </p>
-          {size !== 'sm' && (
-            <p className={clsx('text-[10px] uppercase tracking-widest', isLight ? 'text-white/60' : 'text-[var(--color-text-secondary)]')}>
-              Operating System
-            </p>
-          )}
         </div>
       )}
     </div>

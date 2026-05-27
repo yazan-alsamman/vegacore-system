@@ -4,7 +4,7 @@ Colors and logo extracted from `visual/Vega Core - Logo File.ai`.
 
 ## Logo
 
-- **File:** `apps/web/public/brand/logo.png` (exported from Illustrator metadata)
+- **File:** `apps/web/public/brand/logo.jpg` (from `visual/Vega Core - Logo.jpg`)
 - **Source:** `visual/Vega Core - Logo File.ai`
 - **Usage:** Sidebar, login hero, favicon
 
