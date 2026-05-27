@@ -39,6 +39,29 @@ export class UsersService {
     return paginate(items, total, page, limit);
   }
 
+  /** HR team list — all staff accounts (not clients/models). */
+  async findTeam(callerRole?: string) {
+    const excludeSlugs =
+      callerRole === 'super-admin' ? ['client', 'model'] : ['client', 'model', 'super-admin'];
+
+    return this.prisma.user.findMany({
+      where: { role: { slug: { notIn: excludeSlugs } } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        status: true,
+        locale: true,
+        createdAt: true,
+        role: { select: { id: true, name: true, slug: true } },
+        employeeProfile: { select: { department: true } },
+      },
+    });
+  }
+
   listAssignableRoles(callerRole?: string) {
     const exclude = callerRole === 'super-admin'
       ? ['client', 'model']

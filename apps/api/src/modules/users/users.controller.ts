@@ -18,6 +18,12 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
+  @RequirePermissions('hr.read', 'users.read')
+  @Get('team')
+  findTeam(@CurrentUser('role') role: string) {
+    return this.usersService.findTeam(role);
+  }
+
   @RequirePermissions('users.create', 'users.read', 'hr.manage')
   @Get('roles/options')
   listRoles(@CurrentUser('role') role: string) {

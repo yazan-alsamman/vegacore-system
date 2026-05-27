@@ -52,9 +52,9 @@ export default function HrPage() {
   const t = useTranslations('common');
   const th = useTranslations('hr');
   const { user } = useAuth();
-  const { canCreate, isSuperAdmin } = usePermissions();
+  const { canCreate } = usePermissions();
   const canAddEmployee = canCreate('users');
-  const { data, loading, refetch, token } = useApiData<{ data: TeamUser[] }>('/users?limit=200');
+  const { data, loading, error, refetch, token } = useApiData<TeamUser[]>('/users/team');
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -83,11 +83,7 @@ export default function HrPage() {
     void loadRoles();
   }, [user?.id, canAddEmployee, loadRoles]);
 
-  const staff = (data?.data || []).filter((u) => {
-    if (u.role.slug === 'client') return false;
-    if (u.role.slug === 'super-admin' && !isSuperAdmin) return false;
-    return true;
-  });
+  const staff = data || [];
 
   const openCreate = async () => {
     setError('');
@@ -137,6 +133,10 @@ export default function HrPage() {
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-vega-red/30 bg-vega-red/5 p-6 text-center text-sm text-vega-red">
+          {error}
         </div>
       ) : (
         <DataTable
