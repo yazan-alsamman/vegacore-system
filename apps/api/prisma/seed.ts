@@ -108,15 +108,23 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'chat.read', 'chat.use',
     'calendar.read',
   ],
-  /** Marketing & content */
+  /** Marketing: clients, social, packages, files, models, content & shoots */
   'marketing-manager': [
     'dashboard.read',
     'clients.read',
-    'marketing.read', 'marketing.create', 'marketing.update', 'marketing.delete',
+    'clients.update',
+    'marketing.read',
+    'marketing.create',
+    'marketing.update',
+    'marketing.delete',
     'media.read',
+    'media.create',
+    'media.update',
     'models.read',
+    'models.update',
     'ai.use',
-    'chat.read', 'chat.use',
+    'chat.read',
+    'chat.use',
     'calendar.read',
   ],
   /** Photography / shoots only */

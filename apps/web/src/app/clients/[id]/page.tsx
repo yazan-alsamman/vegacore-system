@@ -17,6 +17,7 @@ import {
 } from '@/components/clients/client-profile-editors';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { useApiData } from '@/hooks/use-api-data';
+import { usePermissions } from '@/hooks/use-permissions';
 import { fileSectionTitle, type FileSection } from '@/lib/client-file-sections';
 import { formatMoney } from '@/lib/money';
 import type { SocialLinksMap } from '@/lib/social-links';
@@ -98,6 +99,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
+  const { canRead } = usePermissions();
   const { data, loading, error, refetch, token } = useApiData<ClientProfile>(`/clients/${id}/profile`);
   const [tab, setTab] = useState<Tab>('info');
 
@@ -113,7 +115,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
     { id: 'package', label: tc('tabPackage') },
     { id: 'files', label: tc('tabFiles') },
     { id: 'history', label: tc('tabHistory') },
-    { id: 'financial', label: tc('tabFinancial') },
+    ...(canRead('finance') ? [{ id: 'financial' as Tab, label: tc('tabFinancial') }] : []),
   ];
 
   return (

@@ -56,18 +56,27 @@ export class CalendarService {
       })
     ).map((m) => m.projectId);
 
+    const bookingInclude = {
+      shoot: { select: { id: true, title: true, location: true } },
+      model: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
+    };
+
+    const bookingRange = {
+      startTime: { lte: end },
+      endTime: { gte: start },
+    };
+
     const bookingList = modelProfile
       ? await this.prisma.modelBooking.findMany({
-          where: {
-            modelId: modelProfile.id,
-            startTime: { lte: end },
-            endTime: { gte: start },
-          },
-          include: {
-            shoot: { select: { id: true, title: true, location: true } },
-          },
+          where: { ...bookingRange, modelId: modelProfile.id },
+          include: bookingInclude,
         })
-      : [];
+      : this.can(permissions, 'models.read')
+        ? await this.prisma.modelBooking.findMany({
+            where: bookingRange,
+            include: bookingInclude,
+          })
+        : [];
 
     const [
       tasks,
@@ -164,15 +173,19 @@ export class CalendarService {
     }
 
     for (const b of bookingList) {
+      const modelName = b.model?.user
+        ? `${b.model.user.firstName} ${b.model.user.lastName}`.trim()
+        : '';
+      const sessionTitle = b.shoot?.title || b.notes || 'Photoshoot session';
       events.push({
         id: `booking:${b.id}`,
         type: 'SHOOT',
-        title: b.shoot?.title || b.notes || 'Photoshoot session',
+        title: modelName ? `${modelName} · ${sessionTitle}` : sessionTitle,
         description: b.shoot?.location || b.notes || undefined,
         start: b.startTime.toISOString(),
         end: b.endTime.toISOString(),
         allDay: false,
-        link: '/models',
+        link: b.model?.id ? `/models/${b.model.id}` : '/models',
         status: b.status,
       });
     }
