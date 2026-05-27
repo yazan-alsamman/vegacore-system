@@ -27,8 +27,8 @@ export class ClientsController {
 
   @RequirePermissions('clients.read')
   @Get(':id/profile')
-  getProfile(@Param('id') id: string) {
-    return this.clientsService.getProfile(id);
+  getProfile(@Param('id') id: string, @CurrentUser('permissions') permissions: string[]) {
+    return this.clientsService.getProfile(id, permissions);
   }
 
   @RequirePermissions('clients.read')

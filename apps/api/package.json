@@ -12,6 +12,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:reset-data": "ts-node prisma/reset-data.ts",
     "prisma:sync-marketing": "ts-node prisma/sync-marketing-permissions.ts",
+    "prisma:sync-general-manager": "ts-node prisma/sync-general-manager-permissions.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

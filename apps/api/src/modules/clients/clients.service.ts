@@ -71,7 +71,9 @@ export class ClientsService {
     return client;
   }
 
-  async getProfile(id: string) {
+  async getProfile(id: string, permissions: string[] = []) {
+    const canFinance = permissions.includes('*') || permissions.includes('finance.read');
+
     const client = await this.prisma.client.findUnique({
       where: { id },
       include: {
@@ -94,14 +96,21 @@ export class ClientsService {
             },
           },
         },
-        invoices: {
-          orderBy: { createdAt: 'desc' },
-          include: { payments: true },
-        },
-        subscriptions: { orderBy: { nextDue: 'asc' } },
+        ...(canFinance
+          ? {
+              invoices: {
+                orderBy: { createdAt: 'desc' as const },
+                include: { payments: true },
+              },
+              subscriptions: { orderBy: { nextDue: 'asc' as const } },
+            }
+          : {}),
       },
     });
     if (!client) throw new NotFoundException('Client not found');
+
+    const invoices = canFinance && 'invoices' in client ? client.invoices : [];
+    const subscriptions = canFinance && 'subscriptions' in client ? client.subscriptions : [];
 
     const auditLogs = await this.prisma.auditLog.findMany({
       where: { entity: 'client', entityId: id },
@@ -114,15 +123,15 @@ export class ClientsService {
     const fileSections = parseFileSections(client.assetFileSections);
     const assetsByType = this.groupAssetsByType(client.assets, fileSections);
 
-    const totalInvoiced = client.invoices.reduce((s, i) => s + i.total, 0);
-    const totalPaid = client.invoices.reduce(
+    const totalInvoiced = invoices.reduce((s, i) => s + i.total, 0);
+    const totalPaid = invoices.reduce(
       (s, inv) =>
         s + inv.payments.filter((p) => p.status === 'COMPLETED').reduce((ps, p) => ps + p.amount, 0),
       0,
     );
     const remaining = Math.max(0, totalInvoiced - totalPaid);
 
-    const payments = client.invoices
+    const payments = invoices
       .flatMap((inv) =>
         inv.payments
           .filter((p) => p.status === 'COMPLETED')
@@ -144,11 +153,13 @@ export class ClientsService {
       );
 
     const renewalDate =
-      client.subscriptions.find((s) => s.isActive)?.nextDue ||
+      subscriptions.find((s) => s.isActive)?.nextDue ||
       activePackage?.contractEnd ||
       null;
 
-    const alerts = this.buildFinancialAlerts(client.invoices, activePackage, client.subscriptions);
+    const alerts = canFinance
+      ? this.buildFinancialAlerts(invoices, activePackage, subscriptions)
+      : [];
 
     const completedTasks = client.projects.flatMap((p) =>
       p.tasks
@@ -220,16 +231,24 @@ export class ClientsService {
       contracts: client.contracts,
       projects: client.projects.map(({ tasks, ...p }) => p),
       meetings: client.meetings,
-      invoices: client.invoices,
-      payments,
-      subscriptions: client.subscriptions,
-      financial: {
-        totalInvoiced,
-        totalPaid,
-        remaining,
-        renewalDate,
-        alerts,
-      },
+      invoices: canFinance ? invoices : [],
+      payments: canFinance ? payments : [],
+      subscriptions: canFinance ? subscriptions : [],
+      financial: canFinance
+        ? {
+            totalInvoiced,
+            totalPaid,
+            remaining,
+            renewalDate,
+            alerts,
+          }
+        : {
+            totalInvoiced: 0,
+            totalPaid: 0,
+            remaining: 0,
+            renewalDate: activePackage?.contractEnd || null,
+            alerts: [],
+          },
       history,
     };
   }

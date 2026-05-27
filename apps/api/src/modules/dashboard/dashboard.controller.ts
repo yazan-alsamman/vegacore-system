@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { DashboardService } from './dashboard.service';
 
@@ -11,7 +12,7 @@ export class DashboardController {
 
   @RequirePermissions('dashboard.read')
   @Get('executive')
-  getExecutive() {
-    return this.dashboardService.getExecutiveDashboard();
+  getExecutive(@CurrentUser('permissions') permissions: string[]) {
+    return this.dashboardService.getExecutiveDashboard(permissions);
   }
 }

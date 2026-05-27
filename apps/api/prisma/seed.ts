@@ -77,18 +77,12 @@ const PERMISSIONS = [
 ];
 
 /** Role → permission slugs. Principle: least privilege — each role sees only their domain. */
+const FINANCE_PERMISSIONS = ['finance.read', 'finance.create', 'finance.update', 'finance.delete'];
+
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   'super-admin': PERMISSIONS.map((p) => p.slug),
-  'general-manager': [
-    'dashboard.read', 'users.read', 'clients.read', 'clients.create', 'clients.update',
-    'projects.read', 'projects.create', 'projects.update', 'tasks.read', 'tasks.create', 'tasks.update',
-    'marketing.read', 'marketing.create', 'marketing.update', 'media.read', 'media.create',
-    'models.read', 'hr.read', 'hr.manage', 'finance.read', 'archive.read', 'ai.use', 'ai.read', 'audit.read',
-    'chat.read', 'chat.use',
-    'reports.read', 'reports.generate',
-    'calendar.read',
-  ],
-  /** Project management only */
+  /** Full access except finance / invoices */
+  'general-manager': PERMISSIONS.map((p) => p.slug).filter((s) => !FINANCE_PERMISSIONS.includes(s)),
   'project-manager': [
     'dashboard.read',
     'clients.read',

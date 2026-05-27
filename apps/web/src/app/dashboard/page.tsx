@@ -17,6 +17,7 @@ import {
 import { DashboardExecutiveCharts } from '@/components/charts/lazy-charts';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { StatCard } from '@/components/ui/stat-card';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
@@ -90,6 +91,8 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
   const { token } = useAuth();
+  const { canRead } = usePermissions();
+  const showFinance = canRead('finance');
   const [data, setData] = useState<ExecutiveData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -103,11 +106,13 @@ export default function DashboardPage() {
   }, [token]);
 
   const overview = data?.overview;
-  const profitChart = (data?.revenueByMonth || []).map((m) => ({
-    name: m.month.slice(5),
-    revenue: m.revenue,
-    profit: m.profit,
-  }));
+  const profitChart = showFinance
+    ? (data?.revenueByMonth || []).map((m) => ({
+        name: m.month.slice(5),
+        revenue: m.revenue,
+        profit: m.profit,
+      }))
+    : [];
   const taskChartData = data?.charts?.tasksByStatus?.map((x) => ({ name: x.status, value: x._count })) || [];
   const projectChartData = data?.charts?.projectsByStatus?.map((x) => ({ name: x.status, value: x._count })) || [];
 
@@ -129,19 +134,27 @@ export default function DashboardPage() {
         <StatCard title={t('totalProjects')} value={overview?.totalProjects ?? 0} icon={FolderKanban} variant="navy" />
         <StatCard title={t('delayedTasks')} value={overview?.delayedTasks ?? 0} icon={AlertTriangle} variant="warning" />
         <StatCard title={t('delayedProjects')} value={overview?.delayedProjects ?? 0} icon={Clock} variant="danger" />
-        <StatCard
-          title={t('monthlyProfit')}
-          value={money(overview?.monthlyProfit ?? 0)}
-          icon={(overview?.monthlyProfit ?? 0) >= 0 ? TrendingUp : TrendingDown}
-          variant={(overview?.monthlyProfit ?? 0) >= 0 ? 'success' : 'warning'}
-        />
-        <StatCard title={t('collectionRate')} value={`${overview?.collectionRate ?? 0}%`} icon={Wallet} />
+        {showFinance && (
+          <>
+            <StatCard
+              title={t('monthlyProfit')}
+              value={money(overview?.monthlyProfit ?? 0)}
+              icon={(overview?.monthlyProfit ?? 0) >= 0 ? TrendingUp : TrendingDown}
+              variant={(overview?.monthlyProfit ?? 0) >= 0 ? 'success' : 'warning'}
+            />
+            <StatCard title={t('collectionRate')} value={`${overview?.collectionRate ?? 0}%`} icon={Wallet} />
+          </>
+        )}
         <StatCard title={t('busyEmployees')} value={overview?.busyEmployeesCount ?? 0} icon={Users} variant="cyan" />
       </div>
 
       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard title={t('monthlyRevenue')} value={money(overview?.monthlyRevenue ?? 0)} icon={DollarSign} variant="success" />
-        <StatCard title={t('overduePayments')} value={money(overview?.overdueAmount ?? 0)} icon={AlertTriangle} variant="danger" />
+        {showFinance && (
+          <>
+            <StatCard title={t('monthlyRevenue')} value={money(overview?.monthlyRevenue ?? 0)} icon={DollarSign} variant="success" />
+            <StatCard title={t('overduePayments')} value={money(overview?.overdueAmount ?? 0)} icon={AlertTriangle} variant="danger" />
+          </>
+        )}
         <StatCard title={t('activeClients')} value={overview?.activeClients ?? 0} icon={Briefcase} />
         <StatCard
           title={t('performanceScore')}
@@ -154,7 +167,7 @@ export default function DashboardPage() {
         profitChart={profitChart}
         taskChartData={taskChartData}
         projectChartData={projectChartData}
-        revenueProfitTitle={t('revenueProfitChart')}
+        revenueProfitTitle={showFinance ? t('revenueProfitChart') : undefined}
         tasksByStatusTitle={t('tasksByStatus')}
         projectsByStatusTitle={t('projectsByStatus')}
         revenueLabel={t('revenue')}
@@ -245,32 +258,34 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-vega-red" />
-              {t('latePayingClients')}
-            </h3>
-            <Link href="/finance" className="text-xs font-semibold text-vega-cyan hover:underline">{t('finance')}</Link>
-          </div>
-          {(data?.overdueClients?.length ?? 0) === 0 ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">{t('noOverdue')}</p>
-          ) : (
-            <ul className="space-y-2">
-              {data!.overdueClients.map((c) => (
-                <li key={c.clientId}>
-                  <Link
-                    href={`/clients/${c.clientId}`}
-                    className="flex justify-between rounded-lg border border-vega-red/20 bg-vega-red/5 px-3 py-2 text-sm hover:border-vega-red/40"
-                  >
-                    <span className="font-medium">{c.companyName}</span>
-                    <span className="font-semibold text-vega-red">{money(c.totalDue)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {showFinance && (
+          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-vega-red" />
+                {t('latePayingClients')}
+              </h3>
+              <Link href="/finance" className="text-xs font-semibold text-vega-cyan hover:underline">{t('finance')}</Link>
+            </div>
+            {(data?.overdueClients?.length ?? 0) === 0 ? (
+              <p className="text-sm text-[var(--color-text-secondary)]">{t('noOverdue')}</p>
+            ) : (
+              <ul className="space-y-2">
+                {data!.overdueClients.map((c) => (
+                  <li key={c.clientId}>
+                    <Link
+                      href={`/clients/${c.clientId}`}
+                      className="flex justify-between rounded-lg border border-vega-red/20 bg-vega-red/5 px-3 py-2 text-sm hover:border-vega-red/40"
+                    >
+                      <span className="font-medium">{c.companyName}</span>
+                      <span className="font-semibold text-vega-red">{money(c.totalDue)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
       </div>
 
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">

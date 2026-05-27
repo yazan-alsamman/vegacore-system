@@ -33,7 +33,7 @@ interface DashboardExecutiveChartsProps {
   profitChart: ProfitPoint[];
   taskChartData: ChartPoint[];
   projectChartData: ChartPoint[];
-  revenueProfitTitle: string;
+  revenueProfitTitle?: string;
   tasksByStatusTitle: string;
   projectsByStatusTitle: string;
   revenueLabel: string;
@@ -52,25 +52,29 @@ export function DashboardExecutiveCharts({
   profitLabel,
   formatMoney,
 }: DashboardExecutiveChartsProps) {
+  const showRevenueChart = Boolean(revenueProfitTitle);
+
   return (
-    <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-        <h3 className="mb-4 font-semibold">{revenueProfitTitle}</h3>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={profitChart}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" name={revenueLabel} stroke="#00AEEF" strokeWidth={2} />
-              <Line type="monotone" dataKey="profit" name={profitLabel} stroke="#00A651" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+    <div className={`mb-8 grid grid-cols-1 gap-6 ${showRevenueChart ? 'lg:grid-cols-2' : ''}`}>
+      {showRevenueChart && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <h3 className="mb-4 font-semibold">{revenueProfitTitle}</h3>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={profitChart}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => formatMoney(v)} />
+                <Legend />
+                <Line type="monotone" dataKey="revenue" name={revenueLabel} stroke="#00AEEF" strokeWidth={2} />
+                <Line type="monotone" dataKey="profit" name={profitLabel} stroke="#00A651" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      )}
+      <div className={`grid grid-cols-1 gap-6 sm:grid-cols-2 ${showRevenueChart ? '' : 'max-w-3xl'}`}>
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
           <h3 className="mb-3 font-semibold text-sm">{tasksByStatusTitle}</h3>
           <div className="h-44">

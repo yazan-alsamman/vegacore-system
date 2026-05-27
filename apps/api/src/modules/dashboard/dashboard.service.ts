@@ -11,7 +11,11 @@ export class DashboardService {
     return { start, end };
   }
 
-  async getExecutiveDashboard() {
+  private canFinance(permissions: string[] = []) {
+    return permissions.includes('*') || permissions.includes('finance.read');
+  }
+
+  async getExecutiveDashboard(permissions: string[] = []) {
     const now = new Date();
     const { start: startOfMonth, end: endOfMonth } = this.monthRange(now);
 
@@ -208,7 +212,9 @@ export class DashboardService {
     const activeProjects = projects.filter((p) => p.status === 'IN_PROGRESS').length;
     const delayedProjects = projectsMapped.filter((p) => p.isDelayed).length;
 
-    return {
+    const includeFinance = this.canFinance(permissions);
+
+    const result = {
       overview: {
         totalProjects: projects.length,
         activeProjects,
@@ -268,6 +274,21 @@ export class DashboardService {
         projectsByStatus: projectStats,
       },
     };
+
+    if (!includeFinance) {
+      result.overview.monthlyRevenue = 0;
+      result.overview.monthlyExpenses = 0;
+      result.overview.monthlyPayroll = 0;
+      result.overview.monthlyProfit = 0;
+      result.overview.collectionRate = 0;
+      result.overview.overdueInvoicesCount = 0;
+      result.overview.overdueAmount = 0;
+      result.overdueClients = [];
+      result.overdueInvoices = [];
+      result.revenueByMonth = [];
+    }
+
+    return result;
   }
 
   private async getRevenueByMonth(months: number) {
