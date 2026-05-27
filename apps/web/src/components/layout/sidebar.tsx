@@ -29,8 +29,8 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 start-0 z-40 flex w-64 flex-col bg-vega-hero text-white shadow-xl">
       <HexPattern />
-      <div className="relative z-10 flex h-16 items-center border-b border-white/10 px-5">
-        <Logo variant="light" size="sm" />
+      <div className="relative z-10 flex items-center justify-center border-b border-white/10 px-4 py-4">
+        <Logo size="md" onDark />
       </div>
 
       <div className="relative z-10 px-4 py-3">

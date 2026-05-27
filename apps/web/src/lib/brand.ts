@@ -2,7 +2,8 @@
  * VegaCore brand tokens — visual/Vega Core - Logo.jpg
  */
 export const brand = {
-  logo: '/brand/logo.jpg',
+  /** Cache-bust when replacing the file on disk */
+  logo: '/brand/logo.jpg?v=2',
   colors: {
     black: '#231F20',
     white: '#FFFFFF',
