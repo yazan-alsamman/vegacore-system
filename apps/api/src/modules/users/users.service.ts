@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
@@ -39,23 +39,29 @@ export class UsersService {
     return paginate(items, total, page, limit);
   }
 
-  listAssignableRoles() {
+  listAssignableRoles(callerRole?: string) {
+    const exclude = callerRole === 'super-admin'
+      ? ['client', 'model']
+      : ['super-admin', 'client', 'model'];
     return this.prisma.role.findMany({
-      where: { slug: { notIn: ['super-admin', 'client', 'model'] } },
+      where: { slug: { notIn: exclude } },
       select: { id: true, name: true, slug: true },
       orderBy: { name: 'asc' },
     });
   }
 
-  async create(data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    roleId: string;
-    phone?: string;
-    department?: string;
-  }) {
+  async create(
+    data: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      roleId: string;
+      phone?: string;
+      department?: string;
+    },
+    callerRole?: string,
+  ) {
     const existing = await this.prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
     });
@@ -63,8 +69,8 @@ export class UsersService {
 
     const role = await this.prisma.role.findUnique({ where: { id: data.roleId } });
     if (!role) throw new NotFoundException('Role not found');
-    if (role.slug === 'super-admin') {
-      throw new ConflictException('Cannot create super admin accounts from this form');
+    if (role.slug === 'super-admin' && callerRole !== 'super-admin') {
+      throw new ForbiddenException('Only super admins can create super admin accounts');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);
@@ -89,7 +95,7 @@ export class UsersService {
         },
       });
 
-      if (role.slug !== 'client' && role.slug !== 'model') {
+      if (role.slug !== 'client' && role.slug !== 'model' && role.slug !== 'super-admin') {
         await tx.employeeProfile.create({
           data: {
             userId: user.id,

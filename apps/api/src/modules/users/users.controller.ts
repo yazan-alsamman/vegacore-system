@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { UsersService } from './users.service';
@@ -19,8 +20,8 @@ export class UsersController {
 
   @RequirePermissions('users.create', 'users.read', 'hr.manage')
   @Get('roles/options')
-  listRoles() {
-    return this.usersService.listAssignableRoles();
+  listRoles(@CurrentUser('role') role: string) {
+    return this.usersService.listAssignableRoles(role);
   }
 
   @RequirePermissions('users.read')
@@ -31,8 +32,8 @@ export class UsersController {
 
   @RequirePermissions('users.create')
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  create(@Body() dto: CreateUserDto, @CurrentUser('role') role: string) {
+    return this.usersService.create(dto, role);
   }
 
   @RequirePermissions('users.update')
