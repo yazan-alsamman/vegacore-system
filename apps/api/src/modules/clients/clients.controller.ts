@@ -33,8 +33,8 @@ export class ClientsController {
 
   @RequirePermissions('clients.read')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser('permissions') permissions: string[]) {
+    return this.clientsService.findOne(id, permissions);
   }
 
   @RequirePermissions('clients.create')

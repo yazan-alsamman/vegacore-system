@@ -57,13 +57,17 @@ export class ClientsService {
     return paginate(items, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, permissions: string[] = []) {
+    const canFinance = permissions.includes('*') || permissions.includes('finance.read');
+
     const client = await this.prisma.client.findUnique({
       where: { id },
       include: {
         packages: true,
         projects: { take: 10, orderBy: { createdAt: 'desc' } },
-        invoices: { take: 10, orderBy: { createdAt: 'desc' } },
+        ...(canFinance
+          ? { invoices: { take: 10, orderBy: { createdAt: 'desc' as const } } }
+          : {}),
         contracts: true,
         timeline: { orderBy: { createdAt: 'desc' }, take: 20 },
         assets: { take: 20 },

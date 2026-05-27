@@ -74,7 +74,7 @@ export class ReportsService {
   async generate(type: SmartReportType, userId: string, permissions: string[]) {
     this.assertTypeAccess(permissions, type);
 
-    const payload = await this.collectData(type);
+    const payload = await this.collectData(type, permissions);
     const meta = REPORT_META[type];
     const stamp = new Date().toISOString().slice(0, 10);
     const fileName = `${type.toLowerCase()}-${stamp}-${Date.now()}.pdf`;
@@ -122,10 +122,13 @@ export class ReportsService {
     return report;
   }
 
-  private async collectData(type: SmartReportType): Promise<Record<string, unknown>> {
+  private async collectData(
+    type: SmartReportType,
+    permissions: string[],
+  ): Promise<Record<string, unknown>> {
     switch (type) {
       case 'EXECUTIVE': {
-        const data = await this.dashboardService.getExecutiveDashboard();
+        const data = await this.dashboardService.getExecutiveDashboard(permissions);
         return data as unknown as Record<string, unknown>;
       }
       case 'FINANCE': {
@@ -133,11 +136,11 @@ export class ReportsService {
         return dash as unknown as Record<string, unknown>;
       }
       case 'PROJECTS': {
-        const data = await this.dashboardService.getExecutiveDashboard();
+        const data = await this.dashboardService.getExecutiveDashboard(permissions);
         return { projects: data.projects };
       }
       case 'HR': {
-        const exec = await this.dashboardService.getExecutiveDashboard();
+        const exec = await this.dashboardService.getExecutiveDashboard(permissions);
         const perf = await this.prisma.performanceReport.findMany({
           orderBy: { createdAt: 'desc' },
           take: 20,
