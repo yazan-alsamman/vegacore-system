@@ -54,13 +54,13 @@ export default function HrPage() {
   const { user } = useAuth();
   const { canCreate } = usePermissions();
   const canAddEmployee = canCreate('users');
-  const { data, loading, error, refetch, token } = useApiData<TeamUser[]>('/users/team');
+  const { data, loading, error: loadError, refetch, token } = useApiData<TeamUser[]>('/users/team');
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const loadRoles = useCallback(async (): Promise<RoleOption[]> => {
     if (!token || !canAddEmployee) return [];
@@ -86,7 +86,7 @@ export default function HrPage() {
   const staff = data || [];
 
   const openCreate = async () => {
-    setError('');
+    setFormError('');
     setOpen(true);
     const list = roles.length ? roles : await loadRoles();
     setForm({ ...EMPTY, roleId: list[0]?.id || '' });
@@ -96,7 +96,7 @@ export default function HrPage() {
     e.preventDefault();
     if (!token) return;
     setSaving(true);
-    setError('');
+    setFormError('');
     try {
       await api('/users', {
         method: 'POST',
@@ -115,7 +115,7 @@ export default function HrPage() {
       setForm(EMPTY);
       await refetch();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('error'));
+      setFormError(err instanceof Error ? err.message : t('error'));
     } finally {
       setSaving(false);
     }
@@ -134,9 +134,9 @@ export default function HrPage() {
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
         </div>
-      ) : error ? (
+      ) : loadError ? (
         <div className="rounded-xl border border-vega-red/30 bg-vega-red/5 p-6 text-center text-sm text-vega-red">
-          {error}
+          {loadError}
         </div>
       ) : (
         <DataTable
@@ -169,7 +169,7 @@ export default function HrPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title={th('addEmployee')}>
         <form onSubmit={save} className="space-y-4 max-h-[70vh] overflow-y-auto pe-1">
-          {error && <div className="text-sm text-vega-red">{error}</div>}
+          {formError && <div className="text-sm text-vega-red">{formError}</div>}
           <FormGrid>
             <FormField label={th('firstName')} required>
               <TextInput value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
