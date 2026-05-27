@@ -18,52 +18,48 @@ export function LoginIntro({ onComplete }: LoginIntroProps) {
       return;
     }
 
-    const t1 = setTimeout(() => setPhase('reveal'), 2400);
-    const t2 = setTimeout(() => setPhase('done'), 3400);
-    const t3 = setTimeout(() => setExiting(true), 3800);
-    const t4 = setTimeout(() => onComplete(), 4600);
+    const t1 = window.setTimeout(() => setPhase('reveal'), 2200);
+    const t2 = window.setTimeout(() => setPhase('done'), 3200);
+    const t3 = window.setTimeout(() => setExiting(true), 3600);
+    const t4 = window.setTimeout(() => onComplete(), 4400);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      window.clearTimeout(t4);
     };
   }, [onComplete]);
 
   return (
-    <div
-      className={`login-intro-screen fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden ${
-        exiting ? 'login-intro-exit' : ''
-      }`}
-      aria-hidden={exiting}
-    >
-      {/* Animated mesh background */}
-      <div className="login-mesh absolute inset-0" aria-hidden />
-      <div className="login-orb login-orb-1 absolute" aria-hidden />
-      <div className="login-orb login-orb-2 absolute" aria-hidden />
-      <div className="login-orb login-orb-3 absolute" aria-hidden />
-
-      {/* Accent line sweep */}
-      <div className="login-accent-sweep absolute inset-x-0 top-0 h-1" aria-hidden />
+    <div className={exiting ? 'login-intro-screen is-exiting' : 'login-intro-screen'} role="dialog" aria-label="Loading">
+      <div className="login-mesh absolute inset-0" />
+      <div className="login-orb login-orb-1 absolute" />
+      <div className="login-orb login-orb-2 absolute" />
+      <div className="login-orb login-orb-3 absolute" />
+      <div className="login-accent-sweep absolute inset-x-0 top-0" />
 
       <div className="relative z-10 flex flex-col items-center gap-8 px-6">
         <LoginLogoDraw phase={phase} />
 
         <div
-          className={`text-center transition-all duration-700 delay-300 ${
-            phase === 'drawing' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
-          }`}
+          style={{
+            textAlign: 'center',
+            opacity: phase === 'drawing' ? 0 : 1,
+            transform: phase === 'drawing' ? 'translateY(12px)' : 'translateY(0)',
+            transition: 'opacity 0.6s ease, transform 0.6s ease',
+          }}
         >
-          <p className="text-sm font-semibold tracking-[0.35em] text-white/90 uppercase">
+          <p style={{ fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.35em', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase' }}>
             VegaCore
           </p>
-          <p className="mt-2 text-xs text-white/50 tracking-widest">Operating System</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.5)' }}>
+            Operating System
+          </p>
         </div>
 
-        {/* Loading bar */}
-        <div className="w-48 h-0.5 rounded-full bg-white/10 overflow-hidden">
-          <div className="login-progress-bar h-full rounded-full" />
+        <div className="login-progress-track">
+          <div className="login-progress-bar" />
         </div>
       </div>
     </div>

@@ -533,7 +533,7 @@ export default function FinancePage() {
                           onClick={() => {
                             setPaymentInvoiceId(inv.id);
                             const paid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
-                            setPaymentForm({ amount: String(inv.total - paid), method: 'bank_transfer', reference: '' });
+                            setPaymentForm({ amount: String(inv.total - paid), method: 'bank_transfer', reason: '', reference: '' });
                             setPaymentOpen(true);
                           }}
                           className="rounded px-2 py-1 text-xs font-semibold text-vega-cyan hover:bg-vega-cyan/10"
