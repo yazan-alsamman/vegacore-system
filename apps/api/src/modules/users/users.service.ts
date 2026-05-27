@@ -95,7 +95,7 @@ export class UsersService {
         },
       });
 
-      if (role.slug !== 'client' && role.slug !== 'model' && role.slug !== 'super-admin') {
+      if (role.slug !== 'client' && role.slug !== 'model') {
         await tx.employeeProfile.create({
           data: {
             userId: user.id,

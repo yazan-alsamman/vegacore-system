@@ -52,7 +52,7 @@ export default function HrPage() {
   const t = useTranslations('common');
   const th = useTranslations('hr');
   const { user } = useAuth();
-  const { canCreate } = usePermissions();
+  const { canCreate, isSuperAdmin } = usePermissions();
   const canAddEmployee = canCreate('users');
   const { data, loading, refetch, token } = useApiData<{ data: TeamUser[] }>('/users?limit=200');
   const [roles, setRoles] = useState<RoleOption[]>([]);
@@ -83,7 +83,11 @@ export default function HrPage() {
     void loadRoles();
   }, [user?.id, canAddEmployee, loadRoles]);
 
-  const staff = (data?.data || []).filter((u) => u.role.slug !== 'super-admin' && u.role.slug !== 'client');
+  const staff = (data?.data || []).filter((u) => {
+    if (u.role.slug === 'client') return false;
+    if (u.role.slug === 'super-admin' && !isSuperAdmin) return false;
+    return true;
+  });
 
   const openCreate = async () => {
     setError('');
