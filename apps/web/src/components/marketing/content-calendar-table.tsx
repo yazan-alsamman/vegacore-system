@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
+import { MonthNav } from '@/components/marketing/month-nav';
+import { currentMonthKey, defaultDatetimeInMonth, itemInMonth } from '@/components/marketing/month-utils';
 import { api } from '@/lib/api';
 
 const PLATFORMS = ['instagram', 'facebook', 'linkedin'] as const;
@@ -150,10 +152,16 @@ export function ContentCalendarTable({
 }: ContentCalendarTableProps) {
   const t = useTranslations('marketing');
   const tc = useTranslations('common');
+  const [month, setMonth] = useState(currentMonthKey);
+
+  const monthItems = useMemo(
+    () => items.filter((item) => itemInMonth(item.publishDate, item.createdAt, month)),
+    [items, month],
+  );
 
   const sortedItems = useMemo(
-    () => [...items].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
-    [items],
+    () => [...monthItems].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
+    [monthItems],
   );
 
   const [rows, setRows] = useState<CalendarRowState[]>([]);
@@ -204,6 +212,7 @@ export function ContentCalendarTable({
 
   const addRow = async () => {
     if (!token || !canEdit) return;
+    const defaultPublish = defaultDatetimeInMonth(month);
     const created = await api<{ id: string }>('/marketing/calendar', {
       method: 'POST',
       token,
@@ -211,6 +220,7 @@ export function ContentCalendarTable({
         title: '',
         platform: 'instagram',
         status: 'SCHEDULED',
+        publishDate: new Date(defaultPublish).toISOString(),
         metadata: { clientId, idea: '' },
       }),
     });
@@ -223,7 +233,7 @@ export function ContentCalendarTable({
         idea: '',
         script: '',
         platform: 'instagram',
-        publishDate: '',
+        publishDate: defaultPublish,
         publishVideoUrl: '',
         sourceUrl: '',
         status: 'SCHEDULED',
@@ -245,12 +255,12 @@ export function ContentCalendarTable({
     return t('statusPending');
   };
 
-  if (rows.length === 0 && !canEdit) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>;
-  }
-
   return (
     <div className="space-y-3">
+      <MonthNav month={month} onChange={setMonth} />
+      {rows.length === 0 && !canEdit ? (
+        <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>
+      ) : (
       <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
@@ -400,6 +410,7 @@ export function ContentCalendarTable({
           </tbody>
         </table>
       </div>
+      )}
 
       {canEdit && (
         <button

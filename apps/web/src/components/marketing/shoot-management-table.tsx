@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
+import { MonthNav } from '@/components/marketing/month-nav';
+import { currentMonthKey, defaultDatetimeInMonth, itemInMonth } from '@/components/marketing/month-utils';
 import { api } from '@/lib/api';
 
 const PENDING_STATUS = 'SCHEDULED';
@@ -155,15 +157,25 @@ export function ShootManagementTable({
 }: ShootManagementTableProps) {
   const t = useTranslations('marketing');
   const tc = useTranslations('common');
+  const [month, setMonth] = useState(currentMonthKey);
 
   const pendingReels = useMemo(
-    () => calendarItems.filter((c) => c.status === PENDING_STATUS),
-    [calendarItems],
+    () =>
+      calendarItems.filter(
+        (c) =>
+          c.status === PENDING_STATUS && itemInMonth(c.publishDate, c.createdAt, month),
+      ),
+    [calendarItems, month],
+  );
+
+  const monthItems = useMemo(
+    () => items.filter((item) => itemInMonth(item.scheduledAt, item.createdAt, month)),
+    [items, month],
   );
 
   const sortedItems = useMemo(
-    () => [...items].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
-    [items],
+    () => [...monthItems].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
+    [monthItems],
   );
 
   const [rows, setRows] = useState<ShootRowState[]>([]);
@@ -230,11 +242,13 @@ export function ShootManagementTable({
 
   const addRow = async () => {
     if (!token || !canEdit) return;
+    const defaultScheduled = defaultDatetimeInMonth(month);
     const created = await api<{ id: string }>('/media/shoots', {
       method: 'POST',
       token,
       body: JSON.stringify({
         title: 'تصوير',
+        scheduledAt: new Date(defaultScheduled).toISOString(),
         equipment: { clientId, contentCalendarIds: [] },
       }),
     });
@@ -243,7 +257,7 @@ export function ShootManagementTable({
       ...prev,
       {
         id: created.id,
-        scheduledAt: '',
+        scheduledAt: defaultScheduled,
         modelId: '',
         photographerUserId: '',
         tools: '',
@@ -261,12 +275,12 @@ export function ShootManagementTable({
     await onChanged();
   };
 
-  if (rows.length === 0 && !canEdit) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>;
-  }
-
   return (
     <div className="space-y-3">
+      <MonthNav month={month} onChange={setMonth} />
+      {rows.length === 0 && !canEdit ? (
+        <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>
+      ) : (
       <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         <table className="w-full min-w-[1000px] border-collapse text-sm">
           <thead>
@@ -414,6 +428,7 @@ export function ShootManagementTable({
           </tbody>
         </table>
       </div>
+      )}
 
       {canEdit && (
         <button
