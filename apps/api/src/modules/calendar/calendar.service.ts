@@ -33,6 +33,11 @@ export class CalendarService {
     return clientId ? `/clients/${clientId}?tab=marketing` : '/clients';
   }
 
+  private shootClientLink(equipment: unknown): string {
+    const clientId = (equipment as { clientId?: string } | null)?.clientId;
+    return clientId ? `/clients/${clientId}?tab=marketing` : '/calendar';
+  }
+
   private range(from?: string, to?: string) {
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
@@ -62,7 +67,7 @@ export class CalendarService {
     ).map((m) => m.projectId);
 
     const bookingInclude = {
-      shoot: { select: { id: true, title: true, location: true } },
+      shoot: { select: { id: true, title: true, location: true, equipment: true } },
       model: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
     };
 
@@ -86,6 +91,7 @@ export class CalendarService {
     const [
       tasks,
       shootsMedia,
+      shootsAsPhotographer,
       contentAssigned,
       contentModel,
       phases,
@@ -108,6 +114,13 @@ export class CalendarService {
             include: { project: { select: { name: true } } },
           })
         : Promise.resolve([]),
+      this.prisma.shoot.findMany({
+        where: {
+          scheduledAt: { gte: start, lte: end },
+          equipment: { path: ['photographerUserId'], equals: userId },
+        },
+        include: { project: { select: { name: true } } },
+      }),
       this.prisma.contentCalendar.findMany({
         where: {
           publishDate: { gte: start, lte: end },
@@ -182,35 +195,58 @@ export class CalendarService {
         ? `${b.model.user.firstName} ${b.model.user.lastName}`.trim()
         : '';
       const sessionTitle = b.shoot?.title || b.notes || 'Photoshoot session';
+      const isOwnBooking = modelProfile?.id === b.modelId;
       events.push({
         id: `booking:${b.id}`,
         type: 'SHOOT',
-        title: modelName ? `${modelName} · ${sessionTitle}` : sessionTitle,
+        title: isOwnBooking ? sessionTitle : modelName ? `${modelName} · ${sessionTitle}` : sessionTitle,
         description: b.shoot?.location || b.notes || undefined,
         start: b.startTime.toISOString(),
         end: b.endTime.toISOString(),
         allDay: false,
-        link: b.model?.id ? `/models/${b.model.id}` : '/models',
+        link: isOwnBooking
+          ? this.shootClientLink(b.shoot?.equipment)
+          : b.model?.id
+            ? `/models/${b.model.id}`
+            : '/models',
         status: b.status,
       });
     }
 
+    const shootEventIds = new Set<string>();
+
+    const pushShootEvent = (s: {
+      id: string;
+      title: string;
+      location?: string | null;
+      scheduledAt: Date | null;
+      status: string;
+      equipment?: unknown;
+      project?: { name: string } | null;
+    }) => {
+      if (!s.scheduledAt) return;
+      const eventId = `shoot:${s.id}`;
+      if (shootEventIds.has(eventId)) return;
+      if (bookingList.some((b) => b.shootId === s.id)) return;
+      shootEventIds.add(eventId);
+      events.push({
+        id: eventId,
+        type: 'SHOOT',
+        title: s.title,
+        description: [s.location, s.project?.name].filter(Boolean).join(' · ') || undefined,
+        start: s.scheduledAt.toISOString(),
+        end: new Date(s.scheduledAt.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        allDay: false,
+        link: this.shootClientLink(s.equipment),
+        status: s.status,
+      });
+    };
+
     if (this.can(permissions, 'media.read')) {
-      for (const s of shootsMedia) {
-        if (bookingList.some((b) => b.shootId === s.id)) continue;
-        events.push({
-          id: `shoot:${s.id}`,
-          type: 'SHOOT',
-          title: s.title,
-          description: [s.location, s.project?.name].filter(Boolean).join(' · ') || undefined,
-          start: s.scheduledAt!.toISOString(),
-          end: new Date(s.scheduledAt!.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-          allDay: false,
-          link: '/media',
-          status: s.status,
-        });
-      }
+      for (const s of shootsMedia) pushShootEvent(s);
     }
+
+    for (const s of shootsAsPhotographer) pushShootEvent(s);
 
     const contentSeen = new Set<string>();
     for (const c of [...contentAssigned, ...contentModel]) {
