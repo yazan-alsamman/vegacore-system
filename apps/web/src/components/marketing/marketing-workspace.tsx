@@ -29,7 +29,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   const { data, loading, refetch, token } = useApiData<{
     clients: { id: string; companyName: string }[];
     calendar: { id: string; title: string; script?: string; platform?: string; status: string; publishDate?: string; createdAt?: string; metadata?: { idea?: string; clientId?: string; publishVideoUrl?: string; sourceUrl?: string } }[];
-    scripts: { id: string; title: string; content: string; platform?: string; clientId?: string }[];
     shoots: { id: string; title: string; location?: string; scheduledAt?: string; status: string; notes?: string; shotList?: unknown[]; equipment?: Record<string, unknown>; project?: { clientId?: string } }[];
     reels: { id: string; title: string; editedUrl?: string; rawFileUrl?: string; publishUrl?: string; status: string; shoot?: { project?: { clientId?: string } } }[];
   }>(endpoint);
@@ -40,15 +39,9 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
 
   const defaultTab: MarketingTab = canMarketing ? 'calendar' : canMedia ? 'shoots' : 'calendar';
   const [tab, setTab] = useState<MarketingTab>(defaultTab);
-  const [openScript, setOpenScript] = useState(false);
   const [openShoot, setOpenShoot] = useState(false);
   const [openReel, setOpenReel] = useState(false);
 
-  const [scriptForm, setScriptForm] = useState({
-    title: '',
-    content: '',
-    platform: 'Instagram',
-  });
   const [shootForm, setShootForm] = useState({
     title: '',
     projectId: '',
@@ -73,7 +66,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
       ...item,
       clientId: (item.metadata as { clientId?: string } | undefined)?.clientId,
     }));
-    const scripts = data?.scripts || [];
     const shoots = (data?.shoots || []).map((item) => ({
       ...item,
       clientId: item.project?.clientId,
@@ -82,8 +74,8 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
       ...item,
       clientId: item.shoot?.project?.clientId,
     }));
-    return { calendar, scripts, shoots, reels };
-  }, [data?.calendar, data?.reels, data?.scripts, data?.shoots]);
+    return { calendar, shoots, reels };
+  }, [data?.calendar, data?.reels, data?.shoots]);
 
   const availableProjects = projectsData?.data || [];
   const availableShoots = scoped.shoots;
@@ -105,19 +97,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   /** Read-only calendar for roles with marketing.read only (e.g. account manager). */
   const canEditCalendar =
     canMarketing && (canCreate('marketing') || canUpdate('marketing'));
-
-  const submitScript = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    await api('/marketing/scripts', {
-      method: 'POST',
-      token,
-      body: JSON.stringify({ ...scriptForm, clientId }),
-    });
-    setOpenScript(false);
-    setScriptForm({ title: '', content: '', platform: 'Instagram' });
-    await refetch();
-  };
 
   const submitShoot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,52 +201,14 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
       ) : (
         <>
           {activeTab === 'calendar' && canMarketing && (
-            <>
-              <ContentCalendarTable
-                clientId={clientId}
-                items={scoped.calendar}
-                token={token}
-                canEdit={canEditCalendar}
-                canDelete={canDelete('marketing')}
-                onChanged={refetch}
-              />
-              <div className="mt-6">
-                <h3 className="mb-3 text-sm font-semibold">{t('clientScripts')}</h3>
-                <DataTable
-                  columns={[
-                    { key: 'title', header: tc('title') },
-                    { key: 'platform', header: tc('platform') },
-                    { key: 'content', header: t('scriptContent') },
-                    {
-                      key: 'actions',
-                      header: tc('actions'),
-                      render: (item) => (
-                        <CrudActions
-                          module="marketing"
-                          onDelete={async () => {
-                            if (!token) return;
-                            await api(`/marketing/scripts/${item.id}`, { method: 'DELETE', token });
-                            await refetch();
-                          }}
-                        />
-                      ),
-                    },
-                  ]}
-                  data={scoped.scripts}
-                />
-                {canCreate('marketing') && (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      className="rounded-lg bg-[var(--color-surface-secondary)] px-3 py-2 text-sm"
-                      onClick={() => setOpenScript(true)}
-                    >
-                      {t('addScript')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+            <ContentCalendarTable
+              clientId={clientId}
+              items={scoped.calendar}
+              token={token}
+              canEdit={canEditCalendar}
+              canDelete={canDelete('marketing')}
+              onChanged={refetch}
+            />
           )}
 
           {activeTab === 'shoots' && canMedia && (
@@ -382,21 +323,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
           )}
         </>
       )}
-
-      <Modal open={openScript} onClose={() => setOpenScript(false)} title={t('modalAddScript')}>
-        <form className="space-y-4" onSubmit={submitScript}>
-          <FormField label={tc('title')} required>
-            <TextInput value={scriptForm.title} onChange={(e) => setScriptForm((f) => ({ ...f, title: e.target.value }))} required />
-          </FormField>
-          <FormField label={tc('platform')}>
-            <TextInput value={scriptForm.platform} onChange={(e) => setScriptForm((f) => ({ ...f, platform: e.target.value }))} />
-          </FormField>
-          <FormField label={t('scriptContent')} required>
-            <TextArea value={scriptForm.content} onChange={(e) => setScriptForm((f) => ({ ...f, content: e.target.value }))} required />
-          </FormField>
-          <FormActions onCancel={() => setOpenScript(false)} submitLabel={tc('save')} cancelLabel={tc('cancel')} />
-        </form>
-      </Modal>
 
       <Modal open={openShoot} onClose={() => setOpenShoot(false)} title={t('modalAddShoot')}>
         <form className="space-y-4" onSubmit={submitShoot}>
