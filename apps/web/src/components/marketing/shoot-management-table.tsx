@@ -34,6 +34,7 @@ export interface CalendarReelItem {
   platform?: string | null;
   status: string;
   publishDate?: string | null;
+  createdAt?: string;
   metadata?: { idea?: string; clientId?: string } | null;
 }
 
