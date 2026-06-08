@@ -452,7 +452,7 @@
     "reelsToShoot": "Reels to shoot",
     "requiredShooting": "Required shooting",
     "addShootRow": "Add shoot row",
-    "noPendingContent": "No pending calendar items"
+    "noPendingContent": "No pending reels in the content calendar — set status to Pending first"
   },
   "media": {
     "title": "Media Production",

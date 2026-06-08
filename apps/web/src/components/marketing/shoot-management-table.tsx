@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 
+const PENDING_STATUS = 'SCHEDULED';
+
 export interface ShootItem {
   id: string;
   title: string;
@@ -23,9 +25,14 @@ export interface PhotographerOption {
   name: string;
 }
 
-export interface PendingContentOption {
+export interface CalendarReelItem {
   id: string;
-  label: string;
+  title: string;
+  script?: string | null;
+  platform?: string | null;
+  status: string;
+  publishDate?: string | null;
+  metadata?: { idea?: string; clientId?: string } | null;
 }
 
 interface ShootRowState {
@@ -41,13 +48,25 @@ interface ShootRowState {
 interface ShootManagementTableProps {
   clientId: string;
   items: ShootItem[];
+  calendarItems: CalendarReelItem[];
   models: ModelOption[];
   photographers: PhotographerOption[];
-  pendingContent: PendingContentOption[];
   token: string | null;
   canEdit: boolean;
   canDelete: boolean;
   onChanged: () => Promise<void>;
+}
+
+function formatReelLabel(item: CalendarReelItem): string {
+  const idea = item.metadata?.idea?.trim();
+  const title = item.title?.trim();
+  const script = item.script?.trim();
+  const scriptPreview =
+    script && script.length > 48 ? `${script.slice(0, 48)}…` : script;
+  const main = title || idea || scriptPreview;
+  const platform = item.platform?.trim();
+  if (!main) return platform ? `ريل · ${platform}` : 'ريل';
+  return platform ? `${main} · ${platform}` : main;
 }
 
 function toDatetimeLocal(iso?: string | null) {
@@ -69,9 +88,12 @@ function parseEquipment(eq?: Record<string, unknown> | null) {
   };
 }
 
-function buildTitle(ids: string[], options: PendingContentOption[]) {
+function buildTitle(ids: string[], calendar: CalendarReelItem[]) {
   const labels = ids
-    .map((id) => options.find((o) => o.id === id)?.label)
+    .map((id) => {
+      const item = calendar.find((c) => c.id === id);
+      return item ? formatReelLabel(item) : null;
+    })
     .filter(Boolean);
   return labels.length ? labels.join(' • ') : 'تصوير';
 }
@@ -89,10 +111,10 @@ function itemToRow(item: ShootItem): ShootRowState {
   };
 }
 
-function rowPayload(row: ShootRowState, clientId: string, pendingContent: PendingContentOption[]) {
+function rowPayload(row: ShootRowState, clientId: string, calendar: CalendarReelItem[]) {
   const reelsCount = row.reelsCount.trim() ? Number(row.reelsCount) : undefined;
   return {
-    title: buildTitle(row.contentCalendarIds, pendingContent),
+    title: buildTitle(row.contentCalendarIds, calendar),
     scheduledAt: row.scheduledAt ? new Date(row.scheduledAt).toISOString() : undefined,
     equipment: {
       clientId,
@@ -110,7 +132,7 @@ const cellInput =
 
 const cellText = 'px-2 py-1.5 text-sm text-[var(--color-text)]';
 
-function formatDateTime(value: string) {
+function formatPublishDateTime(value: string) {
   if (!value) return '—';
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
@@ -120,17 +142,12 @@ function labelForId(id: string, options: { id: string; name: string }[]) {
   return options.find((o) => o.id === id)?.name || '—';
 }
 
-function contentLabels(ids: string[], options: PendingContentOption[]) {
-  if (!ids.length) return '—';
-  return ids.map((id) => options.find((o) => o.id === id)?.label || id).join('، ');
-}
-
 export function ShootManagementTable({
   clientId,
   items,
+  calendarItems,
   models,
   photographers,
-  pendingContent,
   token,
   canEdit,
   canDelete,
@@ -138,6 +155,11 @@ export function ShootManagementTable({
 }: ShootManagementTableProps) {
   const t = useTranslations('marketing');
   const tc = useTranslations('common');
+
+  const pendingReels = useMemo(
+    () => calendarItems.filter((c) => c.status === PENDING_STATUS),
+    [calendarItems],
+  );
 
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
@@ -160,13 +182,13 @@ export function ShootManagementTable({
         await api(`/media/shoots/${row.id}`, {
           method: 'PATCH',
           token,
-          body: JSON.stringify(rowPayload(row, clientId, pendingContent)),
+          body: JSON.stringify(rowPayload(row, clientId, calendarItems)),
         });
       } finally {
         setSaving((s) => ({ ...s, [row.id]: false }));
       }
     },
-    [token, canEdit, clientId, pendingContent],
+    [token, canEdit, clientId, calendarItems],
   );
 
   const scheduleSave = useCallback(
@@ -255,129 +277,139 @@ export function ShootManagementTable({
               <th className="min-w-[140px] px-2 py-3 text-start">{t('photographer')}</th>
               <th className="min-w-[140px] px-2 py-3 text-start">{t('toolsRequired')}</th>
               <th className="w-28 px-2 py-3 text-start">{t('reelsToShoot')}</th>
-              <th className="min-w-[200px] px-2 py-3 text-start">{t('requiredShooting')}</th>
+              <th className="min-w-[220px] px-2 py-3 text-start">{t('requiredShooting')}</th>
               {canDelete && <th className="w-10 px-2 py-3" />}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-vega-navy/[0.02]">
-                <td className="px-2 py-2 text-center font-medium text-[var(--color-text-secondary)]">
-                  {index + 1}
-                  {canEdit && saving[row.id] && <span className="block text-[10px] text-vega-cyan">…</span>}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      type="datetime-local"
-                      className={cellInput}
-                      value={row.scheduledAt}
-                      onChange={(e) => updateRow(row.id, { scheduledAt: e.target.value })}
-                    />
-                  ) : (
-                    <span className={cellText}>{formatDateTime(row.scheduledAt)}</span>
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <select
-                      className={cellInput}
-                      value={row.modelId}
-                      onChange={(e) => updateRow(row.id, { modelId: e.target.value })}
-                    >
-                      <option value="">—</option>
-                      {models.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className={cellText}>{labelForId(row.modelId, models)}</span>
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <select
-                      className={cellInput}
-                      value={row.photographerUserId}
-                      onChange={(e) => updateRow(row.id, { photographerUserId: e.target.value })}
-                    >
-                      <option value="">—</option>
-                      {photographers.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className={cellText}>{labelForId(row.photographerUserId, photographers)}</span>
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      className={cellInput}
-                      value={row.tools}
-                      placeholder="—"
-                      onChange={(e) => updateRow(row.id, { tools: e.target.value })}
-                    />
-                  ) : (
-                    <span className={cellText}>{row.tools || '—'}</span>
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      min={0}
-                      className={`${cellInput} w-20`}
-                      value={row.reelsCount}
-                      placeholder="0"
-                      onChange={(e) => updateRow(row.id, { reelsCount: e.target.value })}
-                    />
-                  ) : (
-                    <span className={cellText}>{row.reelsCount || '—'}</span>
-                  )}
-                </td>
-                <td className="px-1 py-1 align-top">
-                  {canEdit ? (
-                    <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-1.5">
-                      {pendingContent.length === 0 ? (
-                        <p className="px-1 py-1 text-xs text-[var(--color-text-secondary)]">{t('noPendingContent')}</p>
-                      ) : (
-                        pendingContent.map((item) => (
-                          <label key={item.id} className="flex cursor-pointer items-start gap-2 rounded px-1 py-0.5 hover:bg-vega-cyan/5">
-                            <input
-                              type="checkbox"
-                              className="mt-1 shrink-0"
-                              checked={row.contentCalendarIds.includes(item.id)}
-                              onChange={() => toggleContent(row.id, item.id)}
-                            />
-                            <span className="text-xs leading-snug">{item.label}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  ) : (
-                    <span className={`${cellText} block whitespace-pre-wrap`}>
-                      {contentLabels(row.contentCalendarIds, pendingContent)}
-                    </span>
-                  )}
-                </td>
-                {canDelete && (
-                  <td className="px-1 py-1 text-center">
-                    <button
-                      type="button"
-                      onClick={() => void deleteRow(row.id)}
-                      className="rounded p-1.5 text-vega-red hover:bg-vega-red/10"
-                      title={tc('delete')}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-vega-navy/[0.02]">
+                  <td className="px-2 py-2 text-center font-medium text-[var(--color-text-secondary)]">
+                    {index + 1}
+                    {canEdit && saving[row.id] && <span className="block text-[10px] text-vega-cyan">…</span>}
                   </td>
-                )}
-              </tr>
+                  <td className="px-1 py-1">
+                    {canEdit ? (
+                      <input
+                        type="datetime-local"
+                        className={cellInput}
+                        value={row.scheduledAt}
+                        onChange={(e) => updateRow(row.id, { scheduledAt: e.target.value })}
+                      />
+                    ) : (
+                      <span className={cellText}>{formatPublishDateTime(row.scheduledAt)}</span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1">
+                    {canEdit ? (
+                      <select
+                        className={cellInput}
+                        value={row.modelId}
+                        onChange={(e) => updateRow(row.id, { modelId: e.target.value })}
+                      >
+                        <option value="">—</option>
+                        {models.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={cellText}>{labelForId(row.modelId, models)}</span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1">
+                    {canEdit ? (
+                      <select
+                        className={cellInput}
+                        value={row.photographerUserId}
+                        onChange={(e) => updateRow(row.id, { photographerUserId: e.target.value })}
+                      >
+                        <option value="">—</option>
+                        {photographers.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={cellText}>{labelForId(row.photographerUserId, photographers)}</span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1">
+                    {canEdit ? (
+                      <input
+                        className={cellInput}
+                        value={row.tools}
+                        placeholder="—"
+                        onChange={(e) => updateRow(row.id, { tools: e.target.value })}
+                      />
+                    ) : (
+                      <span className={cellText}>{row.tools || '—'}</span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1">
+                    {canEdit ? (
+                      <input
+                        type="number"
+                        min={0}
+                        className={`${cellInput} w-20`}
+                        value={row.reelsCount}
+                        placeholder="0"
+                        onChange={(e) => updateRow(row.id, { reelsCount: e.target.value })}
+                      />
+                    ) : (
+                      <span className={cellText}>{row.reelsCount || '—'}</span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1 align-top">
+                    {canEdit ? (
+                      <div className="max-h-40 min-w-[200px] overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-1.5">
+                        {pendingReels.length === 0 ? (
+                          <p className="px-1 py-1 text-xs text-[var(--color-text-secondary)]">{t('noPendingContent')}</p>
+                        ) : (
+                          pendingReels.map((item) => (
+                            <label
+                              key={item.id}
+                              className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 hover:bg-vega-cyan/5"
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-1 shrink-0"
+                                checked={row.contentCalendarIds.includes(item.id)}
+                                onChange={() => toggleContent(row.id, item.id)}
+                              />
+                              <span className="text-xs leading-snug">{formatReelLabel(item)}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    ) : (
+                      <span className={`${cellText} block whitespace-pre-wrap`}>
+                        {row.contentCalendarIds.length
+                          ? row.contentCalendarIds
+                              .map((id) => {
+                                const item = calendarItems.find((c) => c.id === id);
+                                return item ? formatReelLabel(item) : id;
+                              })
+                              .join('، ')
+                          : '—'}
+                      </span>
+                    )}
+                  </td>
+                  {canDelete && (
+                    <td className="px-1 py-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => void deleteRow(row.id)}
+                        className="rounded p-1.5 text-vega-red hover:bg-vega-red/10"
+                        title={tc('delete')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
             ))}
           </tbody>
         </table>

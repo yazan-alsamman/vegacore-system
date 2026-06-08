@@ -7,6 +7,25 @@ import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
 export class MarketingService {
   constructor(private prisma: PrismaService) {}
 
+  /** Label for content-calendar reel rows (title / idea / script preview). */
+  formatCalendarReelLabel(item: {
+    title?: string | null;
+    script?: string | null;
+    platform?: string | null;
+    metadata?: unknown;
+  }): string {
+    const meta = (item.metadata || {}) as { idea?: string };
+    const idea = meta.idea?.trim();
+    const title = item.title?.trim();
+    const script = item.script?.trim();
+    const scriptPreview =
+      script && script.length > 48 ? `${script.slice(0, 48)}…` : script;
+    const main = title || idea || scriptPreview;
+    const platform = item.platform?.trim();
+    if (!main) return platform ? `ريل · ${platform}` : 'ريل';
+    return platform ? `${main} · ${platform}` : main;
+  }
+
   async getCalendar(query: PaginationDto, status?: ContentStatus) {
     const page = query.page || 1;
     const limit = query.limit || 20;
@@ -85,12 +104,16 @@ export class MarketingService {
 
     const pendingCalendar = calendar
       .filter((c) => c.status === 'SCHEDULED')
-      .map((c) => {
-        const meta = (c.metadata || {}) as { idea?: string };
-        const idea = meta.idea?.trim();
-        const label = [idea || c.title, c.platform].filter(Boolean).join(' — ');
-        return { id: c.id, label };
-      });
+      .map((c) => ({
+        id: c.id,
+        label: this.formatCalendarReelLabel(c),
+        title: c.title,
+        platform: c.platform,
+        status: c.status,
+        publishDate: c.publishDate,
+        metadata: c.metadata,
+        script: c.script,
+      }));
 
     return {
       clients,

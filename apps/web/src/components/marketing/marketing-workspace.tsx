@@ -165,9 +165,9 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
             <ShootManagementTable
               clientId={clientId}
               items={scoped.shoots}
+              calendarItems={scoped.calendar}
               models={data?.models || []}
               photographers={data?.photographers || []}
-              pendingContent={data?.pendingCalendar || []}
               token={token}
               canEdit={canEditShoots}
               canDelete={canDelete('media')}
