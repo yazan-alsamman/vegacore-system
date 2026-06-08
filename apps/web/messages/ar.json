@@ -335,6 +335,7 @@
     "paymentMethod": "طريقة الدفع",
     "invoiceRequiredForPayment": "اختر فاتورة لهذه الدفعة",
     "paymentReasonRequired": "أدخل سبب الدفعة",
+    "financePermissionDenied": "ليس لديك صلاحية تسجيل الدفعات المالية",
     "noInvoicesForPayment": "أضف فاتورة أولاً",
     "deletePaymentConfirm": "حذف هذه الدفعة؟"
   },

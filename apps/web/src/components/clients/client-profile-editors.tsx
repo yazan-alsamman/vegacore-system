@@ -1100,6 +1100,10 @@ export function useClientFinancialEditor(
   const savePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    if (!canCreate('finance')) {
+      alert(tc('financePermissionDenied'));
+      return;
+    }
     if (!payForm.invoiceId) {
       alert(tc('invoiceRequiredForPayment'));
       return;

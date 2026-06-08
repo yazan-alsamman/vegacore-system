@@ -335,6 +335,7 @@
     "paymentMethod": "Payment method",
     "invoiceRequiredForPayment": "Select an invoice for this payment",
     "paymentReasonRequired": "Enter a reason for the payment",
+    "financePermissionDenied": "You do not have permission to record payments",
     "noInvoicesForPayment": "Add an invoice first",
     "deletePaymentConfirm": "Delete this payment?"
   },

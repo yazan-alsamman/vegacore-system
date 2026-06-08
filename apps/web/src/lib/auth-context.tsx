@@ -45,7 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setLoading(false);
     }
-  }, []);
+
+    const onTokenRefreshed = (e: Event) => {
+      const next = (e as CustomEvent<string>).detail;
+      if (next) setToken(next);
+    };
+    const onSessionExpired = () => {
+      setUser(null);
+      setToken(null);
+      router.push('/login');
+    };
+
+    window.addEventListener('auth:token-refreshed', onTokenRefreshed);
+    window.addEventListener('auth:session-expired', onSessionExpired);
+    return () => {
+      window.removeEventListener('auth:token-refreshed', onTokenRefreshed);
+      window.removeEventListener('auth:session-expired', onSessionExpired);
+    };
+  }, [router]);
 
   const login = async (email: string, password: string) => {
     const res = await authApi.login(email, password);
