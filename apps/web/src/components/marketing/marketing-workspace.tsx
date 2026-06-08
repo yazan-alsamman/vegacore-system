@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ContentCalendarTable } from '@/components/marketing/content-calendar-table';
+import { ShootManagementTable } from '@/components/marketing/shoot-management-table';
 import { DataTable } from '@/components/data-table';
 import { Modal } from '@/components/ui/modal';
-import { FormActions, FormField, SelectInput, TextArea, TextInput } from '@/components/ui/form-fields';
+import { FormActions, FormField, SelectInput, TextInput } from '@/components/ui/form-fields';
 import { CrudActions } from '@/components/admin/crud-actions';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -29,29 +30,17 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   const { data, loading, refetch, token } = useApiData<{
     clients: { id: string; companyName: string }[];
     calendar: { id: string; title: string; script?: string; platform?: string; status: string; publishDate?: string; createdAt?: string; metadata?: { idea?: string; clientId?: string; publishVideoUrl?: string; sourceUrl?: string } }[];
-    shoots: { id: string; title: string; location?: string; scheduledAt?: string; status: string; notes?: string; shotList?: unknown[]; equipment?: Record<string, unknown>; project?: { clientId?: string } }[];
+    shoots: { id: string; title: string; scheduledAt?: string; createdAt?: string; equipment?: Record<string, unknown> }[];
     reels: { id: string; title: string; editedUrl?: string; rawFileUrl?: string; publishUrl?: string; status: string; shoot?: { project?: { clientId?: string } } }[];
+    models: { id: string; name: string }[];
+    photographers: { id: string; name: string }[];
+    pendingCalendar: { id: string; label: string }[];
   }>(endpoint);
-
-  const { data: projectsData } = useApiData<{ data: { id: string; name: string; clientId?: string }[] }>(
-    `/projects?limit=200&clientId=${encodeURIComponent(clientId)}`,
-  );
 
   const defaultTab: MarketingTab = canMarketing ? 'calendar' : canMedia ? 'shoots' : 'calendar';
   const [tab, setTab] = useState<MarketingTab>(defaultTab);
-  const [openShoot, setOpenShoot] = useState(false);
   const [openReel, setOpenReel] = useState(false);
 
-  const [shootForm, setShootForm] = useState({
-    title: '',
-    projectId: '',
-    location: '',
-    scheduledAt: '',
-    modelRequired: '',
-    photographer: '',
-    tools: '',
-    shotList: '',
-  });
   const [reelForm, setReelForm] = useState({
     title: '',
     shootId: '',
@@ -66,10 +55,7 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
       ...item,
       clientId: (item.metadata as { clientId?: string } | undefined)?.clientId,
     }));
-    const shoots = (data?.shoots || []).map((item) => ({
-      ...item,
-      clientId: item.project?.clientId,
-    }));
+    const shoots = data?.shoots || [];
     const reels = (data?.reels || []).map((item) => ({
       ...item,
       clientId: item.shoot?.project?.clientId,
@@ -77,7 +63,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
     return { calendar, shoots, reels };
   }, [data?.calendar, data?.reels, data?.shoots]);
 
-  const availableProjects = projectsData?.data || [];
   const availableShoots = scoped.shoots;
 
   const visibleTabs: { id: MarketingTab; label: string }[] = [];
@@ -89,47 +74,15 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
 
   const activeTab = visibleTabs.some((vt) => vt.id === tab) ? tab : visibleTabs[0]?.id ?? 'calendar';
 
-  const actionLabel = activeTab === 'shoots' ? t('addShoot') : t('addReel');
+  const actionLabel = t('addReel');
 
-  const showAction =
-    activeTab === 'shoots' || activeTab === 'reels' ? canCreate('media') : false;
+  const showAction = activeTab === 'reels' && canCreate('media');
 
   /** Read-only calendar for roles with marketing.read only (e.g. account manager). */
   const canEditCalendar =
     canMarketing && (canCreate('marketing') || canUpdate('marketing'));
 
-  const submitShoot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    await api('/media/shoots', {
-      method: 'POST',
-      token,
-      body: JSON.stringify({
-        title: shootForm.title,
-        projectId: shootForm.projectId || undefined,
-        location: shootForm.location || undefined,
-        scheduledAt: shootForm.scheduledAt || undefined,
-        equipment: { tools: shootForm.tools, photographer: shootForm.photographer },
-        notes: shootForm.modelRequired ? t('modelRequiredNote', { name: shootForm.modelRequired }) : undefined,
-        shotList: shootForm.shotList
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-      }),
-    });
-    setOpenShoot(false);
-    setShootForm({
-      title: '',
-      projectId: '',
-      location: '',
-      scheduledAt: '',
-      modelRequired: '',
-      photographer: '',
-      tools: '',
-      shotList: '',
-    });
-    await refetch();
-  };
+  const canEditShoots = canMedia && (canCreate('media') || canUpdate('media'));
 
   const submitReel = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,10 +121,7 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
         {showAction && (
           <button
             type="button"
-            onClick={() => {
-              if (activeTab === 'shoots') setOpenShoot(true);
-              else setOpenReel(true);
-            }}
+            onClick={() => setOpenReel(true)}
             className="rounded-lg bg-vega-navy px-4 py-2 text-sm font-medium text-white hover:bg-vega-navy/90 dark:bg-vega-cyan dark:text-vega-navy"
           >
             + {actionLabel}
@@ -212,53 +162,16 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
           )}
 
           {activeTab === 'shoots' && canMedia && (
-            <DataTable
-              columns={[
-                { key: 'title', header: t('shoot') },
-                {
-                  key: 'scheduledAt',
-                  header: t('shootDate'),
-                  render: (item) =>
-                    item.scheduledAt ? new Date(String(item.scheduledAt)).toLocaleString() : tc('tbd'),
-                },
-                { key: 'location', header: tc('location') },
-                { key: 'status', header: tc('status') },
-                {
-                  key: 'models',
-                  header: t('modelRequired'),
-                  render: (item) => (item.notes ? String(item.notes) : tc('dash')),
-                },
-                {
-                  key: 'photographer',
-                  header: t('photographer'),
-                  render: (item) => (item.equipment as Record<string, string> | undefined)?.photographer || tc('dash'),
-                },
-                {
-                  key: 'tools',
-                  header: t('tools'),
-                  render: (item) => (item.equipment as Record<string, string> | undefined)?.tools || tc('dash'),
-                },
-                {
-                  key: 'shotList',
-                  header: t('shotList'),
-                  render: (item) => (Array.isArray(item.shotList) ? item.shotList.join(', ') : tc('dash')),
-                },
-                {
-                  key: 'actions',
-                  header: tc('actions'),
-                  render: (item) => (
-                    <CrudActions
-                      module="media"
-                      onDelete={async () => {
-                        if (!token) return;
-                        await api(`/media/shoots/${item.id}`, { method: 'DELETE', token });
-                        await refetch();
-                      }}
-                    />
-                  ),
-                },
-              ]}
-              data={scoped.shoots as Array<Record<string, unknown>>}
+            <ShootManagementTable
+              clientId={clientId}
+              items={scoped.shoots}
+              models={data?.models || []}
+              photographers={data?.photographers || []}
+              pendingContent={data?.pendingCalendar || []}
+              token={token}
+              canEdit={canEditShoots}
+              canDelete={canDelete('media')}
+              onChanged={refetch}
             />
           )}
 
@@ -323,49 +236,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
           )}
         </>
       )}
-
-      <Modal open={openShoot} onClose={() => setOpenShoot(false)} title={t('modalAddShoot')}>
-        <form className="space-y-4" onSubmit={submitShoot}>
-          <FormField label={t('shootTitle')} required>
-            <TextInput value={shootForm.title} onChange={(e) => setShootForm((f) => ({ ...f, title: e.target.value }))} required />
-          </FormField>
-          <FormField label={t('project')}>
-            <SelectInput value={shootForm.projectId} onChange={(e) => setShootForm((f) => ({ ...f, projectId: e.target.value }))}>
-              <option value="">{tc('selectProject')}</option>
-              {availableProjects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label={t('shootDate')}>
-              <TextInput
-                type="datetime-local"
-                value={shootForm.scheduledAt}
-                onChange={(e) => setShootForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-              />
-            </FormField>
-            <FormField label={tc('location')}>
-              <TextInput value={shootForm.location} onChange={(e) => setShootForm((f) => ({ ...f, location: e.target.value }))} />
-            </FormField>
-          </div>
-          <FormField label={t('modelRequired')}>
-            <TextInput value={shootForm.modelRequired} onChange={(e) => setShootForm((f) => ({ ...f, modelRequired: e.target.value }))} />
-          </FormField>
-          <FormField label={t('photographer')}>
-            <TextInput value={shootForm.photographer} onChange={(e) => setShootForm((f) => ({ ...f, photographer: e.target.value }))} />
-          </FormField>
-          <FormField label={t('toolsRequired')}>
-            <TextInput value={shootForm.tools} onChange={(e) => setShootForm((f) => ({ ...f, tools: e.target.value }))} />
-          </FormField>
-          <FormField label={t('shotListHint')}>
-            <TextArea value={shootForm.shotList} onChange={(e) => setShootForm((f) => ({ ...f, shotList: e.target.value }))} />
-          </FormField>
-          <FormActions onCancel={() => setOpenShoot(false)} submitLabel={tc('save')} cancelLabel={tc('cancel')} />
-        </form>
-      </Modal>
 
       <Modal open={openReel} onClose={() => setOpenReel(false)} title={t('modalAddReel')}>
         <form className="space-y-4" onSubmit={submitReel}>

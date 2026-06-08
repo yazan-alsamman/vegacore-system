@@ -447,7 +447,11 @@
     "addRow": "إضافة صف",
     "statusPublished": "تم النشر",
     "statusPending": "قيد الانتظار",
-    "statusCancelled": "تم الإلغاء"
+    "statusCancelled": "تم الإلغاء",
+    "reelsToShoot": "عدد الريلات",
+    "requiredShooting": "التصوير المطلوب",
+    "addShootRow": "إضافة صف تصوير",
+    "noPendingContent": "لا يوجد محتوى قيد الانتظار"
   },
   "media": {
     "title": "الإنتاج الإعلامي",

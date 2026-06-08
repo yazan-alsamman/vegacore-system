@@ -447,7 +447,11 @@
     "addRow": "Add row",
     "statusPublished": "Published",
     "statusPending": "Pending",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "reelsToShoot": "Reels to shoot",
+    "requiredShooting": "Required shooting",
+    "addShootRow": "Add shoot row",
+    "noPendingContent": "No pending calendar items"
   },
   "media": {
     "title": "Media Production",

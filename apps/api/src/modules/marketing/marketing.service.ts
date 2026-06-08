@@ -24,9 +24,19 @@ export class MarketingService {
     return paginate(items, total, page, limit);
   }
 
+  private clientShootWhere(clientId: string): Prisma.ShootWhereInput {
+    return {
+      OR: [
+        { project: { clientId } },
+        { equipment: { path: ['clientId'], equals: clientId } },
+      ],
+    };
+  }
+
   async getWorkspace(clientId?: string) {
     const clientWhere = clientId ? { id: clientId } : {};
-    const [clients, calendar, scripts, shoots, reels] = await Promise.all([
+    const shootWhere = clientId ? this.clientShootWhere(clientId) : {};
+    const [clients, calendar, scripts, shoots, reels, models, photographers] = await Promise.all([
       this.prisma.client.findMany({
         where: clientWhere,
         select: { id: true, companyName: true },
@@ -41,7 +51,7 @@ export class MarketingService {
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.shoot.findMany({
-        where: clientId ? { project: { clientId } } : {},
+        where: shootWhere,
         orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
         include: {
           project: { select: { id: true, name: true, clientId: true } },
@@ -49,13 +59,55 @@ export class MarketingService {
         },
       }),
       this.prisma.video.findMany({
-        where: clientId ? { shoot: { project: { clientId } } } : {},
+        where: clientId
+          ? {
+              OR: [
+                { shoot: { project: { clientId } } },
+                { shoot: { equipment: { path: ['clientId'], equals: clientId } } },
+              ],
+            }
+          : {},
         orderBy: { updatedAt: 'desc' },
         include: { shoot: { include: { project: { select: { clientId: true } } } } },
       }),
+      this.prisma.modelProfile.findMany({
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.user.findMany({
+        where: { role: { slug: 'photographer' }, status: 'ACTIVE' },
+        select: { id: true, firstName: true, lastName: true },
+        orderBy: { firstName: 'asc' },
+      }),
     ]);
 
-    return { clients, calendar, scripts, shoots, reels };
+    const pendingCalendar = calendar
+      .filter((c) => c.status === 'SCHEDULED')
+      .map((c) => {
+        const meta = (c.metadata || {}) as { idea?: string };
+        const idea = meta.idea?.trim();
+        const label = [idea || c.title, c.platform].filter(Boolean).join(' — ');
+        return { id: c.id, label };
+      });
+
+    return {
+      clients,
+      calendar,
+      scripts,
+      shoots,
+      reels,
+      models: models.map((m) => ({
+        id: m.id,
+        name: `${m.user.firstName} ${m.user.lastName}`.trim(),
+      })),
+      photographers: photographers.map((p) => ({
+        id: p.id,
+        name: `${p.firstName} ${p.lastName}`.trim(),
+      })),
+      pendingCalendar,
+    };
   }
 
   async createContent(data: {

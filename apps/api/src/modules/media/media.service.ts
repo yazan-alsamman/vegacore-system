@@ -36,10 +36,14 @@ export class MediaService {
   createShoot(data: {
     title: string; projectId?: string; location?: string;
     scheduledAt?: string; equipment?: Record<string, unknown>; shotList?: unknown[];
+    notes?: string;
   }) {
     return this.prisma.shoot.create({
       data: {
-        ...data,
+        title: data.title,
+        projectId: data.projectId,
+        location: data.location,
+        notes: data.notes,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
         equipment: data.equipment as Prisma.InputJsonValue,
         shotList: data.shotList as Prisma.InputJsonValue,
@@ -47,8 +51,27 @@ export class MediaService {
     });
   }
 
-  updateShoot(id: string, data: Record<string, unknown>) {
-    return this.prisma.shoot.update({ where: { id }, data });
+  async updateShoot(id: string, data: Record<string, unknown>) {
+    const item = await this.prisma.shoot.findUnique({ where: { id } });
+    if (!item) throw new NotFoundException('Shoot not found');
+
+    const patch: Prisma.ShootUpdateInput = {};
+    if (data.title !== undefined) patch.title = String(data.title);
+    if (data.location !== undefined) patch.location = data.location ? String(data.location) : null;
+    if (data.notes !== undefined) patch.notes = data.notes ? String(data.notes) : null;
+    if (data.scheduledAt !== undefined) {
+      patch.scheduledAt = data.scheduledAt ? new Date(String(data.scheduledAt)) : null;
+    }
+    if (data.equipment !== undefined) {
+      const existing = (item.equipment || {}) as Record<string, unknown>;
+      const incoming = data.equipment as Record<string, unknown>;
+      patch.equipment = { ...existing, ...incoming } as Prisma.InputJsonValue;
+    }
+    if (data.shotList !== undefined) {
+      patch.shotList = data.shotList as Prisma.InputJsonValue;
+    }
+
+    return this.prisma.shoot.update({ where: { id }, data: patch });
   }
 
   createVideo(data: { title: string; shootId?: string; rawFileUrl?: string }) {
