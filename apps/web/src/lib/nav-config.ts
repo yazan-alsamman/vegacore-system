@@ -47,6 +47,7 @@ export const ROLE_HOME: Record<string, string> = {
   'general-manager': '/dashboard',
   'project-manager': '/projects',
   developer: '/projects',
+  'account-manager': '/clients',
   'marketing-manager': '/clients',
   photographer: '/media',
   'video-editor': '/clients',

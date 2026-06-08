@@ -102,7 +102,9 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   const showAction =
     activeTab === 'shoots' || activeTab === 'reels' ? canCreate('media') : false;
 
-  const canEditCalendar = canCreate('marketing') || canUpdate('marketing');
+  /** Read-only calendar for roles with marketing.read only (e.g. account manager). */
+  const canEditCalendar =
+    canMarketing && (canCreate('marketing') || canUpdate('marketing'));
 
   const submitScript = async (e: React.FormEvent) => {
     e.preventDefault();

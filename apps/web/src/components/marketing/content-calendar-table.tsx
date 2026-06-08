@@ -101,6 +101,45 @@ function rowPayload(row: CalendarRowState, clientId: string) {
 const cellInput =
   'w-full min-w-[120px] rounded border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none focus:border-vega-cyan/50 focus:bg-[var(--color-surface-secondary)]';
 
+const cellText = 'px-2 py-1.5 text-sm text-[var(--color-text)]';
+
+function hrefForUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function formatPublishDate(value: string) {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+}
+
+function LinkCell({ url, label }: { url: string; label?: string }) {
+  const href = hrefForUrl(url);
+  if (!href) return <span className={`${cellText} text-[var(--color-text-secondary)]`}>—</span>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${cellText} inline-block max-w-[220px] truncate text-vega-cyan underline-offset-2 hover:underline`}
+      title={url}
+    >
+      {label || url}
+    </a>
+  );
+}
+
+function TextCell({ value, multiline }: { value: string; multiline?: boolean }) {
+  return (
+    <span className={`${cellText} block ${multiline ? 'whitespace-pre-wrap' : 'truncate max-w-[200px]'}`}>
+      {value || '—'}
+    </span>
+  );
+}
+
 export function ContentCalendarTable({
   clientId,
   items,
@@ -233,92 +272,116 @@ export function ContentCalendarTable({
               <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-vega-navy/[0.02]">
                 <td className="px-2 py-2 text-center text-[var(--color-text-secondary)] font-medium">
                   {index + 1}
-                  {saving[row.id] && <span className="block text-[10px] text-vega-cyan">…</span>}
+                  {canEdit && saving[row.id] && <span className="block text-[10px] text-vega-cyan">…</span>}
                 </td>
                 <td className="px-1 py-1">
-                  <input
-                    className={cellInput}
-                    value={row.idea}
-                    disabled={!canEdit}
-                    placeholder="—"
-                    onChange={(e) => updateRow(row.id, { idea: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <input
+                      className={cellInput}
+                      value={row.idea}
+                      placeholder="—"
+                      onChange={(e) => updateRow(row.id, { idea: e.target.value })}
+                    />
+                  ) : (
+                    <TextCell value={row.idea} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <input
-                    className={cellInput}
-                    value={row.title}
-                    disabled={!canEdit}
-                    placeholder="—"
-                    onChange={(e) => updateRow(row.id, { title: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <input
+                      className={cellInput}
+                      value={row.title}
+                      placeholder="—"
+                      onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                    />
+                  ) : (
+                    <TextCell value={row.title} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <textarea
-                    className={`${cellInput} min-h-[36px] resize-y`}
-                    value={row.script}
-                    disabled={!canEdit}
-                    placeholder="—"
-                    rows={1}
-                    onChange={(e) => updateRow(row.id, { script: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <textarea
+                      className={`${cellInput} min-h-[36px] resize-y`}
+                      value={row.script}
+                      placeholder="—"
+                      rows={1}
+                      onChange={(e) => updateRow(row.id, { script: e.target.value })}
+                    />
+                  ) : (
+                    <TextCell value={row.script} multiline />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <select
-                    className={cellInput}
-                    value={row.platform}
-                    disabled={!canEdit}
-                    onChange={(e) => updateRow(row.id, { platform: e.target.value as Platform })}
-                  >
-                    {PLATFORMS.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                  {canEdit ? (
+                    <select
+                      className={cellInput}
+                      value={row.platform}
+                      onChange={(e) => updateRow(row.id, { platform: e.target.value as Platform })}
+                    >
+                      {PLATFORMS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <TextCell value={row.platform} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <input
-                    type="datetime-local"
-                    className={cellInput}
-                    value={row.publishDate}
-                    disabled={!canEdit}
-                    onChange={(e) => updateRow(row.id, { publishDate: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <input
+                      type="datetime-local"
+                      className={cellInput}
+                      value={row.publishDate}
+                      onChange={(e) => updateRow(row.id, { publishDate: e.target.value })}
+                    />
+                  ) : (
+                    <TextCell value={formatPublishDate(row.publishDate)} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <input
-                    type="url"
-                    className={cellInput}
-                    value={row.publishVideoUrl}
-                    disabled={!canEdit}
-                    placeholder="https://"
-                    onChange={(e) => updateRow(row.id, { publishVideoUrl: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <input
+                      type="url"
+                      className={cellInput}
+                      value={row.publishVideoUrl}
+                      placeholder="https://"
+                      onChange={(e) => updateRow(row.id, { publishVideoUrl: e.target.value })}
+                    />
+                  ) : (
+                    <LinkCell url={row.publishVideoUrl} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <select
-                    className={cellInput}
-                    value={row.status}
-                    disabled={!canEdit}
-                    onChange={(e) => updateRow(row.id, { status: e.target.value as CalendarStatus })}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {statusLabel(s)}
-                      </option>
-                    ))}
-                  </select>
+                  {canEdit ? (
+                    <select
+                      className={cellInput}
+                      value={row.status}
+                      onChange={(e) => updateRow(row.id, { status: e.target.value as CalendarStatus })}
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {statusLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <TextCell value={statusLabel(row.status)} />
+                  )}
                 </td>
                 <td className="px-1 py-1">
-                  <input
-                    type="url"
-                    className={cellInput}
-                    value={row.sourceUrl}
-                    disabled={!canEdit}
-                    placeholder="https://"
-                    onChange={(e) => updateRow(row.id, { sourceUrl: e.target.value })}
-                  />
+                  {canEdit ? (
+                    <input
+                      type="url"
+                      className={cellInput}
+                      value={row.sourceUrl}
+                      placeholder="https://"
+                      onChange={(e) => updateRow(row.id, { sourceUrl: e.target.value })}
+                    />
+                  ) : (
+                    <LinkCell url={row.sourceUrl} />
+                  )}
                 </td>
                 {canDelete && (
                   <td className="px-1 py-1 text-center">

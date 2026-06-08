@@ -8,6 +8,7 @@ const ROLES = [
   { name: 'General Manager', slug: 'general-manager', description: 'Operations oversight' },
   { name: 'Project Manager', slug: 'project-manager', description: 'Project management' },
   { name: 'Developer', slug: 'developer', description: 'Development team' },
+  { name: 'Account Manager', slug: 'account-manager', description: 'Client accounts — marketing calendar read-only' },
   { name: 'Marketing Manager', slug: 'marketing-manager', description: 'Marketing operations' },
   { name: 'Photographer', slug: 'photographer', description: 'Media production' },
   { name: 'Video Editor', slug: 'video-editor', description: 'Video editing' },
@@ -100,6 +101,15 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'security.read', 'security.create', 'security.update',
     'ai.use',
     'chat.read', 'chat.use',
+    'calendar.read',
+  ],
+  /** Client accounts — view marketing calendar, no edits */
+  'account-manager': [
+    'dashboard.read',
+    'clients.read',
+    'marketing.read',
+    'chat.read',
+    'chat.use',
     'calendar.read',
   ],
   /** Marketing: clients, social, packages, files, models, content & shoots */
@@ -230,6 +240,19 @@ async function main() {
       firstName: 'Project',
       lastName: 'Manager',
       roleId: pmRole.id,
+    },
+  });
+
+  const amRole = roles.find((r) => r.slug === 'account-manager')!;
+  await prisma.user.upsert({
+    where: { email: 'accounts@vegasystem.local' },
+    update: { roleId: amRole.id },
+    create: {
+      email: 'accounts@vegasystem.local',
+      passwordHash: await bcrypt.hash('Accounts@123', 12),
+      firstName: 'Account',
+      lastName: 'Manager',
+      roleId: amRole.id,
     },
   });
 
@@ -926,6 +949,7 @@ async function main() {
   console.log('General Manager: manager@vegasystem.local / Manager@123');
   console.log('Project Manager: pm@vegasystem.local / Pm@123');
   console.log('Developer: dev@vegasystem.local / Dev@123');
+  console.log('Account Manager: accounts@vegasystem.local / Accounts@123');
   console.log('Marketing: marketing@vegasystem.local / Marketing@123');
   console.log('Photographer: photo@vegasystem.local / Photo@123');
   console.log('Editor: editor@vegasystem.local / Editor@123');
