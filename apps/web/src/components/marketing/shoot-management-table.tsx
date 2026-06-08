@@ -60,16 +60,15 @@ interface ShootManagementTableProps {
   onChanged: () => Promise<void>;
 }
 
+/** عنوان تقويم المحتوى (العنوان ثم الفكرة عند غياب العنوان). */
 function formatReelLabel(item: CalendarReelItem): string {
-  const idea = item.metadata?.idea?.trim();
   const title = item.title?.trim();
+  if (title) return title;
+  const idea = item.metadata?.idea?.trim();
+  if (idea) return idea;
   const script = item.script?.trim();
-  const scriptPreview =
-    script && script.length > 48 ? `${script.slice(0, 48)}…` : script;
-  const main = title || idea || scriptPreview;
-  const platform = item.platform?.trim();
-  if (!main) return platform ? `ريل · ${platform}` : 'ريل';
-  return platform ? `${main} · ${platform}` : main;
+  if (script) return script.length > 60 ? `${script.slice(0, 60)}…` : script;
+  return '—';
 }
 
 function toDatetimeLocal(iso?: string | null) {

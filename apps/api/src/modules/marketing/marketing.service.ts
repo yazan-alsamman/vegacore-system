@@ -7,23 +7,20 @@ import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
 export class MarketingService {
   constructor(private prisma: PrismaService) {}
 
-  /** Label for content-calendar reel rows (title / idea / script preview). */
+  /** Label for content-calendar rows — العنوان from calendar, then الفكرة. */
   formatCalendarReelLabel(item: {
     title?: string | null;
     script?: string | null;
-    platform?: string | null;
     metadata?: unknown;
   }): string {
+    const title = item.title?.trim();
+    if (title) return title;
     const meta = (item.metadata || {}) as { idea?: string };
     const idea = meta.idea?.trim();
-    const title = item.title?.trim();
+    if (idea) return idea;
     const script = item.script?.trim();
-    const scriptPreview =
-      script && script.length > 48 ? `${script.slice(0, 48)}…` : script;
-    const main = title || idea || scriptPreview;
-    const platform = item.platform?.trim();
-    if (!main) return platform ? `ريل · ${platform}` : 'ريل';
-    return platform ? `${main} · ${platform}` : main;
+    if (script) return script.length > 60 ? `${script.slice(0, 60)}…` : script;
+    return '—';
   }
 
   async getCalendar(query: PaginationDto, status?: ContentStatus) {
