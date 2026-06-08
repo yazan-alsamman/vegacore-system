@@ -10,7 +10,7 @@ import { useApiData } from '@/hooks/use-api-data';
 import { AiResultView } from '@/components/ai/ai-result-view';
 import { api } from '@/lib/api';
 
-type ToolId = 'script-generator' | 'content-planner' | 'task-distribution' | 'client-analyzer' | 'bug-analyzer';
+type ToolId = 'script-generator' | 'content-planner' | 'client-analyzer';
 
 interface AiStatus {
   configured: boolean;
@@ -33,7 +33,6 @@ export default function AiPage() {
   const { token } = useAuth();
   const { data: status } = useApiData<AiStatus>('/ai/status');
   const { data: clients } = useApiData<{ data: { id: string; companyName: string }[] }>('/clients?limit=100');
-  const { data: projects } = useApiData<{ data: { id: string; name: string }[] }>('/projects?limit=100');
 
   const [activeTool, setActiveTool] = useState<ToolId>('script-generator');
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
@@ -49,19 +48,12 @@ export default function AiPage() {
     clientName: '',
     month: new Date().toISOString().slice(0, 7),
     goals: '',
-    tasks: '',
-    title: '',
-    description: '',
-    stackTrace: '',
-    projectId: '',
   });
 
   const AI_TOOLS: { id: ToolId; endpoint: string; name: string; desc: string }[] = [
     { id: 'script-generator', endpoint: '/ai/script-generator', name: t('scriptGenerator'), desc: t('scriptGeneratorDesc') },
     { id: 'content-planner', endpoint: '/ai/content-planner', name: t('contentPlanner'), desc: t('contentPlannerDesc') },
-    { id: 'task-distribution', endpoint: '/ai/task-distribution', name: t('taskDistribution'), desc: t('taskDistributionDesc') },
     { id: 'client-analyzer', endpoint: '/ai/client-analyzer', name: t('clientAnalyzer'), desc: t('clientAnalyzerDesc') },
-    { id: 'bug-analyzer', endpoint: '/ai/bug-analyzer', name: t('bugAnalyzer'), desc: t('bugAnalyzerDesc') },
   ];
 
   const loadHistory = async () => {
@@ -94,22 +86,8 @@ export default function AiPage() {
           month: form.month,
           goals: form.goals,
         };
-      case 'task-distribution':
-        return {
-          ...base,
-          notes: form.topic,
-          tasks: form.tasks.split('\n').map((s) => s.trim()).filter(Boolean),
-        };
       case 'client-analyzer':
         return { ...base, clientId: form.clientId, topic: form.topic, clientName: form.clientName };
-      case 'bug-analyzer':
-        return {
-          ...base,
-          title: form.title || form.topic,
-          description: form.description,
-          stackTrace: form.stackTrace,
-          projectId: form.projectId,
-        };
       default:
         return base;
     }
@@ -227,42 +205,6 @@ export default function AiPage() {
                   </FormField>
                   <FormField label={t('extraNotes')}>
                     <TextArea value={form.topic} onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))} />
-                  </FormField>
-                </>
-              )}
-
-              {activeTool === 'task-distribution' && (
-                <>
-                  <FormField label={t('tasksList')}>
-                    <TextArea
-                      value={form.tasks}
-                      onChange={(e) => setForm((f) => ({ ...f, tasks: e.target.value }))}
-                      placeholder={t('tasksPlaceholder')}
-                      rows={5}
-                    />
-                  </FormField>
-                  <FormField label={t('extraNotes')}>
-                    <TextInput value={form.topic} onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))} />
-                  </FormField>
-                </>
-              )}
-
-              {activeTool === 'bug-analyzer' && (
-                <>
-                  <FormField label={t('bugTitle')}>
-                    <TextInput value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
-                  </FormField>
-                  <FormField label={t('project')}>
-                    <SelectInput value={form.projectId} onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}>
-                      <option value="">—</option>
-                      {(projects?.data || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </SelectInput>
-                  </FormField>
-                  <FormField label={t('bugDescription')}>
-                    <TextArea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={4} />
-                  </FormField>
-                  <FormField label={t('stackTrace')}>
-                    <TextArea value={form.stackTrace} onChange={(e) => setForm((f) => ({ ...f, stackTrace: e.target.value }))} rows={4} />
                   </FormField>
                 </>
               )}

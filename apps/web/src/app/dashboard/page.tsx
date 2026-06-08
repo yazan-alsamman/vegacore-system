@@ -176,39 +176,7 @@ export default function DashboardPage() {
       />
 
       <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold">{t('allProjects')}</h3>
-            <Link href="/projects" className="text-xs font-semibold text-vega-cyan hover:underline">{t('viewAll')}</Link>
-          </div>
-          <div className="max-h-80 overflow-y-auto space-y-2">
-            {(data?.projects || []).slice(0, 12).map((p) => (
-              <Link
-                key={p.id}
-                href={`/projects/${p.id}`}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:border-vega-cyan/50 ${
-                  p.isDelayed ? 'border-amber-500/30 bg-amber-500/5' : 'border-[var(--color-border)]'
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate">{p.name}</p>
-                  <p className="text-xs text-[var(--color-text-secondary)]">
-                    {p.client?.companyName || '—'} · {p.status}
-                    {p.isDelayed && <span className="ms-1 text-amber-600"> · {t('delayed')}</span>}
-                  </p>
-                </div>
-                <div className="text-end shrink-0">
-                  <p className="text-xs font-bold text-vega-cyan">{p.progress}%</p>
-                  {p.delayedTasks > 0 && (
-                    <p className="text-[10px] text-amber-600">{p.delayedTasks} {t('lateTasks')}</p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 xl:col-span-2">
           <h3 className="mb-4 font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             {t('delays')}
