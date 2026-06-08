@@ -86,7 +86,22 @@ export class MarketingService {
   async updateContent(id: string, data: Record<string, unknown>) {
     const item = await this.prisma.contentCalendar.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Content not found');
-    return this.prisma.contentCalendar.update({ where: { id }, data: data as Prisma.ContentCalendarUpdateInput });
+
+    const patch: Prisma.ContentCalendarUpdateInput = {};
+    if (data.title !== undefined) patch.title = String(data.title);
+    if (data.script !== undefined) patch.script = data.script ? String(data.script) : null;
+    if (data.platform !== undefined) patch.platform = data.platform ? String(data.platform) : null;
+    if (data.status !== undefined) patch.status = data.status as ContentStatus;
+    if (data.publishDate !== undefined) {
+      patch.publishDate = data.publishDate ? new Date(String(data.publishDate)) : null;
+    }
+    if (data.metadata !== undefined) {
+      const existing = (item.metadata || {}) as Record<string, unknown>;
+      const incoming = data.metadata as Record<string, unknown>;
+      patch.metadata = { ...existing, ...incoming } as Prisma.InputJsonValue;
+    }
+
+    return this.prisma.contentCalendar.update({ where: { id }, data: patch });
   }
 
   getCampaigns() {

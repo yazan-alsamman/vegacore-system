@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { ContentCalendarTable } from '@/components/marketing/content-calendar-table';
 import { DataTable } from '@/components/data-table';
 import { Modal } from '@/components/ui/modal';
 import { FormActions, FormField, SelectInput, TextArea, TextInput } from '@/components/ui/form-fields';
@@ -9,8 +10,6 @@ import { CrudActions } from '@/components/admin/crud-actions';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { api } from '@/lib/api';
-
-const CONTENT_STATUSES = ['DRAFT', 'IN_PRODUCTION', 'PENDING_APPROVAL', 'APPROVED', 'SCHEDULED', 'PUBLISHED', 'REJECTED'] as const;
 
 type MarketingTab = 'calendar' | 'shoots' | 'reels';
 
@@ -21,8 +20,7 @@ interface MarketingWorkspaceProps {
 export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   const t = useTranslations('marketing');
   const tc = useTranslations('common');
-  const ts = useTranslations('contentStatus');
-  const { canCreate, canRead } = usePermissions();
+  const { canCreate, canRead, canUpdate, canDelete } = usePermissions();
 
   const canMarketing = canRead('marketing');
   const canMedia = canRead('media');
@@ -30,7 +28,7 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   const endpoint = `/marketing/workspace?clientId=${encodeURIComponent(clientId)}`;
   const { data, loading, refetch, token } = useApiData<{
     clients: { id: string; companyName: string }[];
-    calendar: { id: string; title: string; script?: string; platform?: string; status: string; publishDate?: string; metadata?: { idea?: string; clientId?: string } }[];
+    calendar: { id: string; title: string; script?: string; platform?: string; status: string; publishDate?: string; createdAt?: string; metadata?: { idea?: string; clientId?: string; publishVideoUrl?: string; sourceUrl?: string } }[];
     scripts: { id: string; title: string; content: string; platform?: string; clientId?: string }[];
     shoots: { id: string; title: string; location?: string; scheduledAt?: string; status: string; notes?: string; shotList?: unknown[]; equipment?: Record<string, unknown>; project?: { clientId?: string } }[];
     reels: { id: string; title: string; editedUrl?: string; rawFileUrl?: string; publishUrl?: string; status: string; shoot?: { project?: { clientId?: string } } }[];
@@ -42,19 +40,10 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
 
   const defaultTab: MarketingTab = canMarketing ? 'calendar' : canMedia ? 'shoots' : 'calendar';
   const [tab, setTab] = useState<MarketingTab>(defaultTab);
-  const [openCalendar, setOpenCalendar] = useState(false);
   const [openScript, setOpenScript] = useState(false);
   const [openShoot, setOpenShoot] = useState(false);
   const [openReel, setOpenReel] = useState(false);
 
-  const [calendarForm, setCalendarForm] = useState({
-    title: '',
-    idea: '',
-    script: '',
-    platform: 'Instagram',
-    status: 'DRAFT',
-    publishDate: '',
-  });
   const [scriptForm, setScriptForm] = useState({
     title: '',
     content: '',
@@ -108,35 +97,12 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
 
   const activeTab = visibleTabs.some((vt) => vt.id === tab) ? tab : visibleTabs[0]?.id ?? 'calendar';
 
-  const actionLabel =
-    activeTab === 'calendar' ? t('addContent') : activeTab === 'shoots' ? t('addShoot') : t('addReel');
+  const actionLabel = activeTab === 'shoots' ? t('addShoot') : t('addReel');
 
   const showAction =
-    activeTab === 'calendar'
-      ? canCreate('marketing')
-      : activeTab === 'shoots' || activeTab === 'reels'
-        ? canCreate('media')
-        : false;
+    activeTab === 'shoots' || activeTab === 'reels' ? canCreate('media') : false;
 
-  const submitCalendar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    await api('/marketing/calendar', {
-      method: 'POST',
-      token,
-      body: JSON.stringify({
-        title: calendarForm.title,
-        script: calendarForm.script || undefined,
-        platform: calendarForm.platform,
-        status: calendarForm.status,
-        publishDate: calendarForm.publishDate || undefined,
-        metadata: { idea: calendarForm.idea, clientId },
-      }),
-    });
-    setOpenCalendar(false);
-    setCalendarForm({ title: '', idea: '', script: '', platform: 'Instagram', status: 'DRAFT', publishDate: '' });
-    await refetch();
-  };
+  const canEditCalendar = canCreate('marketing') || canUpdate('marketing');
 
   const submitScript = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,8 +188,7 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
           <button
             type="button"
             onClick={() => {
-              if (activeTab === 'calendar') setOpenCalendar(true);
-              else if (activeTab === 'shoots') setOpenShoot(true);
+              if (activeTab === 'shoots') setOpenShoot(true);
               else setOpenReel(true);
             }}
             className="rounded-lg bg-vega-navy px-4 py-2 text-sm font-medium text-white hover:bg-vega-navy/90 dark:bg-vega-cyan dark:text-vega-navy"
@@ -256,37 +221,13 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
         <>
           {activeTab === 'calendar' && canMarketing && (
             <>
-              <DataTable
-                columns={[
-                  { key: 'title', header: t('ideaContent') },
-                  { key: 'script', header: t('script') },
-                  {
-                    key: 'status',
-                    header: t('contentStatus'),
-                    render: (item) => ts(item.status as 'DRAFT'),
-                  },
-                  { key: 'platform', header: tc('platform') },
-                  {
-                    key: 'publishDate',
-                    header: t('publishDate'),
-                    render: (item) => (item.publishDate ? new Date(item.publishDate).toLocaleDateString() : tc('tbd')),
-                  },
-                  {
-                    key: 'actions',
-                    header: tc('actions'),
-                    render: (item) => (
-                      <CrudActions
-                        module="marketing"
-                        onDelete={async () => {
-                          if (!token) return;
-                          await api(`/marketing/calendar/${item.id}`, { method: 'DELETE', token });
-                          await refetch();
-                        }}
-                      />
-                    ),
-                  },
-                ]}
-                data={scoped.calendar}
+              <ContentCalendarTable
+                clientId={clientId}
+                items={scoped.calendar}
+                token={token}
+                canEdit={canEditCalendar}
+                canDelete={canDelete('marketing')}
+                onChanged={refetch}
               />
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-semibold">{t('clientScripts')}</h3>
@@ -439,50 +380,6 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
           )}
         </>
       )}
-
-      <Modal open={openCalendar} onClose={() => setOpenCalendar(false)} title={t('modalAddContent')}>
-        <form className="space-y-4" onSubmit={submitCalendar}>
-          <FormField label={t('idea')} required>
-            <TextInput
-              value={calendarForm.idea}
-              onChange={(e) => setCalendarForm((f) => ({ ...f, idea: e.target.value }))}
-              required
-            />
-          </FormField>
-          <FormField label={tc('title')} required>
-            <TextInput
-              value={calendarForm.title}
-              onChange={(e) => setCalendarForm((f) => ({ ...f, title: e.target.value }))}
-              required
-            />
-          </FormField>
-          <FormField label={t('script')}>
-            <TextArea value={calendarForm.script} onChange={(e) => setCalendarForm((f) => ({ ...f, script: e.target.value }))} />
-          </FormField>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label={tc('platform')}>
-              <TextInput value={calendarForm.platform} onChange={(e) => setCalendarForm((f) => ({ ...f, platform: e.target.value }))} />
-            </FormField>
-            <FormField label={t('publishDate')}>
-              <TextInput
-                type="date"
-                value={calendarForm.publishDate}
-                onChange={(e) => setCalendarForm((f) => ({ ...f, publishDate: e.target.value }))}
-              />
-            </FormField>
-          </div>
-          <FormField label={t('contentStatus')}>
-            <SelectInput value={calendarForm.status} onChange={(e) => setCalendarForm((f) => ({ ...f, status: e.target.value }))}>
-              {CONTENT_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {ts(s)}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
-          <FormActions onCancel={() => setOpenCalendar(false)} submitLabel={tc('save')} cancelLabel={tc('cancel')} />
-        </form>
-      </Modal>
 
       <Modal open={openScript} onClose={() => setOpenScript(false)} title={t('modalAddScript')}>
         <form className="space-y-4" onSubmit={submitScript}>

@@ -438,7 +438,16 @@
     "finalVersionUrl": "Final version URL",
     "clientVersionUrl": "Client version URL",
     "publishedVersionUrl": "Published version URL",
-    "modelRequiredNote": "Model required: {name}"
+    "modelRequiredNote": "Model required: {name}",
+    "colNumber": "#",
+    "colIdea": "Idea",
+    "colTitle": "Title",
+    "publishVideoLink": "Publish video link",
+    "sourceLink": "Source",
+    "addRow": "Add row",
+    "statusPublished": "Published",
+    "statusPending": "Pending",
+    "statusCancelled": "Cancelled"
   },
   "media": {
     "title": "Media Production",

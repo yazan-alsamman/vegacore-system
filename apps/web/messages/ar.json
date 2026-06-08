@@ -438,7 +438,16 @@
     "finalVersionUrl": "رابط النسخة النهائية",
     "clientVersionUrl": "رابط نسخة العميل",
     "publishedVersionUrl": "رابط النسخة المنشورة",
-    "modelRequiredNote": "المودل المطلوب: {name}"
+    "modelRequiredNote": "المودل المطلوب: {name}",
+    "colNumber": "الرقم",
+    "colIdea": "الفكرة",
+    "colTitle": "العنوان",
+    "publishVideoLink": "رابط فيديو النشر",
+    "sourceLink": "المصدر",
+    "addRow": "إضافة صف",
+    "statusPublished": "تم النشر",
+    "statusPending": "قيد الانتظار",
+    "statusCancelled": "تم الإلغاء"
   },
   "media": {
     "title": "الإنتاج الإعلامي",
