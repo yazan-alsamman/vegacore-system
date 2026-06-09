@@ -333,12 +333,18 @@ async function main() {
   });
 
   const clientRole = roles.find((r) => r.slug === 'client')!;
+  const demoPortalHash = await bcrypt.hash('Client@123', 12);
   await prisma.user.upsert({
     where: { email: 'client@democorp.com' },
-    update: { clientId: client.id, roleId: clientRole.id, status: 'ACTIVE' },
+    update: {
+      clientId: client.id,
+      roleId: clientRole.id,
+      status: 'ACTIVE',
+      passwordHash: demoPortalHash,
+    },
     create: {
       email: 'client@democorp.com',
-      passwordHash: await bcrypt.hash('Client@123', 12),
+      passwordHash: demoPortalHash,
       firstName: 'John',
       lastName: 'Demo',
       roleId: clientRole.id,
