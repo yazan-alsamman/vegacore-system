@@ -61,6 +61,7 @@ interface ClientProfile {
     source?: string;
     metadata?: Record<string, unknown>;
   }[];
+  portalUser?: { id: string; email: string; status?: string; lastLoginAt?: string | null } | null;
 }
 
 function fmtDate(v: unknown) {
@@ -103,6 +104,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
+  const tcl = useTranslations('clients');
   const { user } = useAuth();
   const router = useRouter();
   const isPortalClient = isClientPortalRole(user?.role);
@@ -197,7 +199,15 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
             <div className="grid gap-6 lg:grid-cols-2">
               <SectionCard
                 title={tc('clientData')}
-                actions={<ClientInfoEditor clientId={id} client={client} token={token} onSaved={refetch} />}
+                actions={
+                  <ClientInfoEditor
+                    clientId={id}
+                    client={client}
+                    portalUser={data?.portalUser}
+                    token={token}
+                    onSaved={refetch}
+                  />
+                }
               >
                 <InfoRow label={tc('ownerName')} value={String(client.ownerName)} />
                 <InfoRow label={tc('company')} value={String(client.companyName)} />
@@ -206,6 +216,12 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
                 <InfoRow label={tc('country')} value={String(client.country || '')} />
                 <InfoRow label={tc('businessType')} value={String(client.businessType || '')} />
                 <InfoRow label={tc('startDate')} value={fmtDate(client.onboardingDate)} />
+                {!isPortalClient && (
+                  <InfoRow
+                    label={tcl('portalLogin')}
+                    value={data?.portalUser?.email || tc('portalNotSet')}
+                  />
+                )}
               </SectionCard>
               <SocialMediaSection
                 clientId={id}

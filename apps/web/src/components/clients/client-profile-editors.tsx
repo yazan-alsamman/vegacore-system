@@ -304,21 +304,25 @@ export function SocialMediaSection({
 export function ClientInfoEditor({
   clientId,
   client,
+  portalUser,
   token,
   onSaved,
 }: {
   clientId: string;
   client: Record<string, unknown>;
+  portalUser?: { email: string } | null;
   token: string | null;
   onSaved: () => void;
 }) {
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
+  const tcl = useTranslations('clients');
   const { canUpdate } = usePermissions();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
+
+  const buildForm = () => ({
     ownerName: String(client.ownerName || ''),
     companyName: String(client.companyName || ''),
     phone: String(client.phone || ''),
@@ -328,7 +332,17 @@ export function ClientInfoEditor({
     onboardingDate: client.onboardingDate ? String(client.onboardingDate).slice(0, 10) : '',
     status: String(client.status || 'ACTIVE'),
     notes: String(client.notes || ''),
+    portalEmail: portalUser?.email || '',
+    portalPassword: '',
   });
+
+  const [form, setForm] = useState(buildForm);
+
+  const openModal = () => {
+    setForm(buildForm());
+    setError('');
+    setOpen(true);
+  };
 
   if (!canUpdate('clients')) return null;
 
@@ -338,20 +352,24 @@ export function ClientInfoEditor({
     setSaving(true);
     setError('');
     try {
+      const payload: Record<string, string | undefined> = {
+        ownerName: form.ownerName,
+        companyName: form.companyName,
+        phone: form.phone || undefined,
+        email: form.email || undefined,
+        country: form.country || undefined,
+        businessType: form.businessType || undefined,
+        onboardingDate: form.onboardingDate || undefined,
+        status: form.status,
+        notes: form.notes || undefined,
+      };
+      if (form.portalEmail.trim()) payload.portalEmail = form.portalEmail.trim();
+      if (form.portalPassword.trim()) payload.portalPassword = form.portalPassword;
+
       await api(`/clients/${clientId}`, {
         method: 'PATCH',
         token,
-        body: JSON.stringify({
-          ownerName: form.ownerName,
-          companyName: form.companyName,
-          phone: form.phone || undefined,
-          email: form.email || undefined,
-          country: form.country || undefined,
-          businessType: form.businessType || undefined,
-          onboardingDate: form.onboardingDate || undefined,
-          status: form.status,
-          notes: form.notes || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       setOpen(false);
       onSaved();
@@ -364,7 +382,7 @@ export function ClientInfoEditor({
 
   return (
     <>
-      <EditBtn onClick={() => setOpen(true)} label={t('edit')} />
+      <EditBtn onClick={openModal} label={t('edit')} />
       <Modal open={open} onClose={() => setOpen(false)} title={tc('editClientData')}>
         <form onSubmit={save} className="space-y-4 max-h-[70vh] overflow-y-auto pe-1">
           {error && <div className="text-sm text-vega-red">{error}</div>}
@@ -404,6 +422,29 @@ export function ClientInfoEditor({
           <FormField label={tc('notes')}>
             <TextArea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </FormField>
+
+          <div className="rounded-lg border border-vega-cyan/25 bg-vega-cyan/5 p-4 space-y-3">
+            <p className="text-sm font-semibold text-vega-cyan">{tcl('portalSection')}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{tcl('portalSectionHint')}</p>
+            <FormField label={tcl('portalEmail')}>
+              <TextInput
+                type="email"
+                value={form.portalEmail}
+                onChange={(e) => setForm({ ...form, portalEmail: e.target.value })}
+                placeholder="client@company.com"
+              />
+            </FormField>
+            <FormField label={tcl('portalPassword')}>
+              <TextInput
+                type="password"
+                value={form.portalPassword}
+                onChange={(e) => setForm({ ...form, portalPassword: e.target.value })}
+                placeholder={portalUser?.email ? tcl('portalPasswordEditHint') : tcl('portalPasswordHint')}
+                autoComplete="new-password"
+              />
+            </FormField>
+          </div>
+
           <FormActions onCancel={() => setOpen(false)} submitLabel={t('save')} cancelLabel={t('cancel')} loading={saving} />
         </form>
       </Modal>

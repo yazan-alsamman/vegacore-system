@@ -229,6 +229,7 @@
     "title": "Client profile",
     "portalTitle": "My portal",
     "portalWelcome": "Welcome — your company data, content, and related information are here.",
+    "portalNotSet": "Not set up yet",
     "backToList": "All clients",
     "tabInfo": "Client data",
     "tabPackage": "Package",

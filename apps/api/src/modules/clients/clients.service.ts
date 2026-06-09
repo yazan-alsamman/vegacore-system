@@ -262,6 +262,11 @@ export class ClientsService {
       ? this.buildFinancialAlerts(invoices, activePackage, subscriptions)
       : [];
 
+    const portalUser = await this.prisma.user.findFirst({
+      where: { clientId: id, role: { slug: 'client' } },
+      select: this.portalUserSelect,
+    });
+
     const completedTasks = client.projects.flatMap((p) =>
       p.tasks
         .filter((t) => t.status === TaskStatus.DONE)
@@ -351,6 +356,7 @@ export class ClientsService {
             alerts: [],
           },
       history,
+      portalUser,
     };
   }
 
