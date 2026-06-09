@@ -27,10 +27,6 @@ interface AuthUser {
 export class CalendarService {
   constructor(private prisma: PrismaService) {}
 
-  private can(permissions: string[], slug: string) {
-    return permissions.includes('*') || permissions.includes(slug);
-  }
-
   private marketingClientLink(metadata: unknown): string {
     const clientId = (metadata as { clientId?: string } | null)?.clientId;
     return clientId ? `/clients/${clientId}?tab=marketing` : '/clients';
@@ -52,8 +48,13 @@ export class CalendarService {
     return { start, end };
   }
 
-  /** Client portal: only this client's publish dates, shoots, and meetings. */
-  private async getClientPortalEvents(clientId: string, start: Date, end: Date): Promise<CalendarEvent[]> {
+  /** Client portal: only this client's publish dates, shoots, and their meetings. */
+  private async getClientPortalEvents(
+    clientId: string,
+    userId: string,
+    start: Date,
+    end: Date,
+  ): Promise<CalendarEvent[]> {
     const events: CalendarEvent[] = [];
     const marketingLink = `/clients/${clientId}?tab=marketing`;
 
@@ -72,9 +73,13 @@ export class CalendarService {
       }),
       this.prisma.meeting.findMany({
         where: {
-          clientId,
           startTime: { lte: end },
           endTime: { gte: start },
+          OR: [
+            { clientId },
+            { organizerId: userId },
+            { attendees: { some: { userId } } },
+          ],
         },
       }),
     ]);
@@ -128,10 +133,10 @@ export class CalendarService {
     const { start, end } = this.range(from, to);
 
     if (isClientPortalUser(user) && user.clientId) {
-      return this.getClientPortalEvents(user.clientId, start, end);
+      return this.getClientPortalEvents(user.clientId, user.id, start, end);
     }
 
-    const { id: userId, permissions } = user;
+    const { id: userId } = user;
     const events: CalendarEvent[] = [];
 
     const modelProfile = await this.prisma.modelProfile.findUnique({
@@ -161,16 +166,10 @@ export class CalendarService {
           where: { ...bookingRange, modelId: modelProfile.id },
           include: bookingInclude,
         })
-      : this.can(permissions, 'models.read')
-        ? await this.prisma.modelBooking.findMany({
-            where: bookingRange,
-            include: bookingInclude,
-          })
-        : [];
+      : [];
 
     const [
       tasks,
-      shootsMedia,
       shootsAsPhotographer,
       contentAssigned,
       contentModel,
@@ -188,12 +187,6 @@ export class CalendarService {
         },
         include: { project: { select: { id: true, name: true } } },
       }),
-      this.can(permissions, 'media.read')
-        ? this.prisma.shoot.findMany({
-            where: { scheduledAt: { gte: start, lte: end } },
-            include: { project: { select: { name: true } } },
-          })
-        : Promise.resolve([]),
       this.prisma.shoot.findMany({
         where: {
           scheduledAt: { gte: start, lte: end },
@@ -322,10 +315,6 @@ export class CalendarService {
       });
     };
 
-    if (this.can(permissions, 'media.read') && !isClientPortalUser(user)) {
-      for (const s of shootsMedia) pushShootEvent(s);
-    }
-
     for (const s of shootsAsPhotographer) pushShootEvent(s);
 
     const contentSeen = new Set<string>();
@@ -342,26 +331,6 @@ export class CalendarService {
         link: this.marketingClientLink(c.metadata),
         status: c.status,
       });
-    }
-
-    if (this.can(permissions, 'marketing.read') && !isClientPortalUser(user)) {
-      const teamContent = await this.prisma.contentCalendar.findMany({
-        where: { publishDate: { gte: start, lte: end } },
-      });
-      for (const c of teamContent) {
-        if (contentSeen.has(c.id) || !c.publishDate) continue;
-        contentSeen.add(c.id);
-        events.push({
-          id: `content:${c.id}`,
-          type: 'REEL_PUBLISH',
-          title: c.title,
-          description: c.platform ? `${c.platform} · ${c.status}` : c.status,
-          start: c.publishDate.toISOString(),
-          allDay: true,
-          link: this.marketingClientLink(c.metadata),
-          status: c.status,
-        });
-      }
     }
 
     for (const ph of phases) {
@@ -400,28 +369,6 @@ export class CalendarService {
         link: `/projects/${p.id}`,
         status: p.status,
       });
-    }
-
-    if (this.can(permissions, 'projects.delete')) {
-      const pmProjects = await this.prisma.project.findMany({
-        where: {
-          endDate: { gte: start, lte: end },
-          status: { notIn: ['COMPLETED', 'CANCELLED', 'ARCHIVED'] },
-        },
-      });
-      for (const p of pmProjects) {
-        if (events.some((e) => e.id === `project:${p.id}`)) continue;
-        events.push({
-          id: `project:${p.id}`,
-          type: 'DELIVERY',
-          title: `Project delivery: ${p.name}`,
-          description: `${p.progress}% complete`,
-          start: p.endDate!.toISOString(),
-          allDay: true,
-          link: `/projects/${p.id}`,
-          status: p.status,
-        });
-      }
     }
 
     for (const m of meetingsOrganized) {
