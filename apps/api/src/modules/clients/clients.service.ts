@@ -674,10 +674,40 @@ export class ClientsService {
   }
 
   async remove(id: string, userId?: string) {
-    await this.findOne(id);
-    await this.prisma.client.update({ where: { id }, data: { status: 'INACTIVE' } });
-    await this.audit.log({ userId, action: 'DELETE', entity: 'client', entityId: id });
-    return { message: 'Client deactivated' };
+    const existing = await this.findOne(id);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Invoices block deletion (required relation) — remove them with their payments.
+      const invoices = await tx.invoice.findMany({ where: { clientId: id }, select: { id: true } });
+      if (invoices.length) {
+        const invoiceIds = invoices.map((i) => i.id);
+        await tx.payment.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
+        await tx.invoice.deleteMany({ where: { id: { in: invoiceIds } } });
+      }
+
+      // Client files and their versions.
+      const assets = await tx.asset.findMany({ where: { clientId: id }, select: { id: true } });
+      if (assets.length) {
+        const assetIds = assets.map((a) => a.id);
+        await tx.assetVersion.deleteMany({ where: { assetId: { in: assetIds } } });
+        await tx.asset.deleteMany({ where: { id: { in: assetIds } } });
+      }
+
+      // Portal login accounts so they can no longer sign in.
+      await tx.user.deleteMany({ where: { clientId: id, role: { slug: 'client' } } });
+
+      // Cascades handle packages, timeline, subscriptions, and contracts.
+      await tx.client.delete({ where: { id } });
+    });
+
+    await this.audit.log({
+      userId,
+      action: 'DELETE',
+      entity: 'client',
+      entityId: id,
+      oldData: existing as unknown as Prisma.InputJsonValue,
+    });
+    return { message: 'Client deleted' };
   }
 
   async addPackage(clientId: string, dto: CreatePackageDto) {
