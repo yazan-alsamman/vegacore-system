@@ -203,8 +203,6 @@ export default function LoginPage() {
                   </span>
                 </button>
               </form>
-
-              <p style={{ marginTop: 22, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t('demoHint')}</p>
             </div>
           </div>
         </section>

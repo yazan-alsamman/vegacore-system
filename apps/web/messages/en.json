@@ -125,8 +125,7 @@
     "welcome": "Welcome back",
     "loginSubtitle": "Sign in to your VegaCore workspace",
     "tagline": "Centralized platform for CRM, projects, marketing, finance, HR, and AI automation.",
-    "signingIn": "Signing in...",
-    "demoHint": "Demo: admin@vegasystem.local / Admin@123"
+    "signingIn": "Signing in..."
   },
   "dashboard": {
     "title": "Executive Dashboard",
