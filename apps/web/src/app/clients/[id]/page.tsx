@@ -22,7 +22,7 @@ import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/lib/auth-context';
 import { classificationLabel, marketingManagerLabel } from '@/lib/client-fields';
-import { isClientPortalRole } from '@/lib/nav-config';
+import { isAccountManagerRole, isClientPortalRole } from '@/lib/nav-config';
 import { fileSectionTitle, type FileSection } from '@/lib/client-file-sections';
 import { formatMoney } from '@/lib/money';
 import type { SocialLinksMap } from '@/lib/social-links';
@@ -109,6 +109,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const { user } = useAuth();
   const router = useRouter();
   const isPortalClient = isClientPortalRole(user?.role);
+  const isAccountManager = isAccountManagerRole(user?.role);
   const { canRead } = usePermissions();
   const searchParams = useSearchParams();
   const { data, loading, error, refetch, token } = useApiData<ClientProfile>(`/clients/${id}/profile`);
@@ -137,14 +138,26 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
 
   const fin = useClientFinancialEditor(id, data?.invoices || [], token, () => refetch());
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'info', label: tc('tabInfo') },
-    { id: 'package', label: tc('tabPackage') },
-    { id: 'files', label: tc('tabFiles') },
-    { id: 'history', label: tc('tabHistory') },
-    ...(canMarketingTab ? [{ id: 'marketing' as Tab, label: tc('tabMarketing') }] : []),
-    ...(canRead('finance') ? [{ id: 'financial' as Tab, label: tc('tabFinancial') }] : []),
-  ];
+  const tabs: { id: Tab; label: string }[] = isAccountManager
+    ? [
+        { id: 'info', label: tc('tabInfo') },
+        { id: 'package', label: tc('tabPackage') },
+        ...(canMarketingTab ? [{ id: 'marketing' as Tab, label: tc('tabMarketing') }] : []),
+      ]
+    : [
+        { id: 'info', label: tc('tabInfo') },
+        { id: 'package', label: tc('tabPackage') },
+        { id: 'files', label: tc('tabFiles') },
+        { id: 'history', label: tc('tabHistory') },
+        ...(canMarketingTab ? [{ id: 'marketing' as Tab, label: tc('tabMarketing') }] : []),
+        ...(canRead('finance') ? [{ id: 'financial' as Tab, label: tc('tabFinancial') }] : []),
+      ];
+
+  useEffect(() => {
+    if (isAccountManager && !['info', 'package', 'marketing'].includes(tab)) {
+      setTab('info');
+    }
+  }, [isAccountManager, tab]);
 
   return (
     <DashboardLayout
@@ -231,10 +244,12 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
                         ) || tcl('noMarketingManager')
                       }
                     />
-                    <InfoRow
-                      label={tcl('portalLogin')}
-                      value={data?.portalUser?.email || tc('portalNotSet')}
-                    />
+                    {!isAccountManager && (
+                      <InfoRow
+                        label={tcl('portalLogin')}
+                        value={data?.portalUser?.email || tc('portalNotSet')}
+                      />
+                    )}
                   </>
                 )}
               </SectionCard>

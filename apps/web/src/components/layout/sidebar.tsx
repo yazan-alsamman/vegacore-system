@@ -8,7 +8,13 @@ import { Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Logo } from '@/components/brand/logo';
 import { HexPattern } from '@/components/brand/hex-pattern';
-import { CLIENT_PORTAL_NAV_KEYS, isClientPortalRole, NAV_ITEMS } from '@/lib/nav-config';
+import {
+  ACCOUNT_MANAGER_NAV_KEYS,
+  CLIENT_PORTAL_NAV_KEYS,
+  isAccountManagerRole,
+  isClientPortalRole,
+  NAV_ITEMS,
+} from '@/lib/nav-config';
 import { canAccessModule, isSuperAdmin } from '@/lib/permissions';
 import { useSidebar } from './sidebar-context';
 
@@ -20,12 +26,14 @@ export function Sidebar() {
   const { open, close } = useSidebar();
 
   const isPortalClient = isClientPortalRole(user?.role);
+  const isAccountManager = isAccountManagerRole(user?.role);
 
   const visibleNav = NAV_ITEMS.filter((item) => {
     if (!user) return false;
     if (item.key === 'clients' && isPortalClient) return false;
     if (item.key === 'myPortal' && !isPortalClient) return false;
     if (isPortalClient && !CLIENT_PORTAL_NAV_KEYS.has(item.key)) return false;
+    if (isAccountManager && !ACCOUNT_MANAGER_NAV_KEYS.has(item.key)) return false;
     return isSuperAdmin(user) || canAccessModule(user, item.module);
   }).map((item) => {
     if (item.key === 'models' && user?.role === 'model' && user.modelProfile?.id) {

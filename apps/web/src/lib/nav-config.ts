@@ -21,6 +21,13 @@ export interface NavItem {
 /** Sidebar items visible to client portal users only */
 export const CLIENT_PORTAL_NAV_KEYS = new Set(['myPortal', 'calendar', 'chat']);
 
+/** Account manager: clients + calendar + chat only */
+export const ACCOUNT_MANAGER_NAV_KEYS = new Set(['clients', 'calendar', 'chat']);
+
+export function isAccountManagerRole(role?: string): boolean {
+  return role === 'account-manager';
+}
+
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'dashboard', module: 'dashboard' },
   { href: '/clients', icon: Users, key: 'clients', module: 'clients' },

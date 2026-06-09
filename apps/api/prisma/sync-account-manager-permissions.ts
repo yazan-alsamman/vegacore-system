@@ -1,5 +1,5 @@
 /**
- * Sync account-manager role permissions (read-only marketing calendar).
+ * Sync account-manager role permissions (all clients, marketing read-only).
  * Run: npm run prisma:sync-account-manager
  */
 import { PrismaClient } from '@prisma/client';
@@ -7,9 +7,9 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const ACCOUNT_MANAGER_PERMISSIONS = [
-  'dashboard.read',
   'clients.read',
   'marketing.read',
+  'media.read',
   'chat.read',
   'chat.use',
   'calendar.read',
@@ -18,11 +18,11 @@ const ACCOUNT_MANAGER_PERMISSIONS = [
 async function main() {
   const role = await prisma.role.upsert({
     where: { slug: 'account-manager' },
-    update: { name: 'Account Manager', description: 'Client accounts — view marketing calendar read-only' },
+    update: { name: 'Account Manager', description: 'View all clients — marketing data read-only' },
     create: {
       name: 'Account Manager',
       slug: 'account-manager',
-      description: 'Client accounts — view marketing calendar read-only',
+      description: 'View all clients — marketing data read-only',
       isSystem: true,
     },
   });

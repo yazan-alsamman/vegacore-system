@@ -8,7 +8,7 @@ const ROLES = [
   { name: 'General Manager', slug: 'general-manager', description: 'Operations oversight' },
   { name: 'Project Manager', slug: 'project-manager', description: 'Project management' },
   { name: 'Developer', slug: 'developer', description: 'Development team' },
-  { name: 'Account Manager', slug: 'account-manager', description: 'Client accounts — marketing calendar read-only' },
+  { name: 'Account Manager', slug: 'account-manager', description: 'View all clients — marketing data read-only' },
   { name: 'Marketing Manager', slug: 'marketing-manager', description: 'Marketing operations' },
   { name: 'Photographer', slug: 'photographer', description: 'Media production' },
   { name: 'Video Editor', slug: 'video-editor', description: 'Video editing' },
@@ -103,11 +103,11 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'chat.read', 'chat.use',
     'calendar.read',
   ],
-  /** Client accounts — view marketing calendar, no edits */
+  /** All clients — client info, package & marketing tabs, read-only */
   'account-manager': [
-    'dashboard.read',
     'clients.read',
     'marketing.read',
+    'media.read',
     'chat.read',
     'chat.use',
     'calendar.read',
