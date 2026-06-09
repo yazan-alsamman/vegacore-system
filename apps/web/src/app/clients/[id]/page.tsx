@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   AddFileSectionButton,
@@ -20,6 +20,8 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { MarketingWorkspace } from '@/components/marketing/marketing-workspace';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '@/lib/auth-context';
+import { isClientPortalRole } from '@/lib/nav-config';
 import { fileSectionTitle, type FileSection } from '@/lib/client-file-sections';
 import { formatMoney } from '@/lib/money';
 import type { SocialLinksMap } from '@/lib/social-links';
@@ -101,6 +103,9 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
+  const { user } = useAuth();
+  const router = useRouter();
+  const isPortalClient = isClientPortalRole(user?.role);
   const { canRead } = usePermissions();
   const searchParams = useSearchParams();
   const { data, loading, error, refetch, token } = useApiData<ClientProfile>(`/clients/${id}/profile`);
@@ -109,10 +114,18 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   const canMarketingTab = canRead('marketing') || canRead('media');
 
   useEffect(() => {
+    if (isPortalClient && user?.clientId && user.clientId !== id) {
+      router.replace(`/clients/${user.clientId}`);
+    }
+  }, [isPortalClient, user?.clientId, id, router]);
+
+  useEffect(() => {
     if (searchParams.get('tab') === 'marketing' && canMarketingTab) {
       setTab('marketing');
+    } else if (isPortalClient && canMarketingTab) {
+      setTab('marketing');
     }
-  }, [searchParams, canMarketingTab]);
+  }, [searchParams, canMarketingTab, isPortalClient]);
 
   const client = data?.client;
   const pkg = data?.package;
@@ -131,11 +144,19 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   ];
 
   return (
-    <DashboardLayout title={(client?.companyName as string) || tc('title')} module="clients">
+    <DashboardLayout
+      title={isPortalClient ? tc('portalTitle') : (client?.companyName as string) || tc('title')}
+      module="clients"
+    >
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link href="/clients" className="text-sm text-vega-cyan hover:underline">
-          ← {tc('backToList')}
-        </Link>
+        {!isPortalClient && (
+          <Link href="/clients" className="text-sm text-vega-cyan hover:underline">
+            ← {tc('backToList')}
+          </Link>
+        )}
+        {isPortalClient && (
+          <p className="text-sm text-[var(--color-text-secondary)]">{tc('portalWelcome')}</p>
+        )}
         {client?.status != null && String(client.status) !== '' && (
           <span className="rounded-full bg-vega-cyan/15 px-3 py-0.5 text-xs font-semibold text-vega-cyan">
             {String(client.status)}

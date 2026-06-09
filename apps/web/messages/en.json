@@ -6,6 +6,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "myPortal": "My Portal",
     "projects": "Projects",
     "tasks": "Tasks",
     "chat": "Team Chat",
@@ -215,10 +216,19 @@
     "status": "Status",
     "businessType": "Business Type",
     "notes": "Notes",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "portalSection": "Client portal login",
+    "portalSectionHint": "The client uses this email and password to sign in and view their profile and content.",
+    "portalEmail": "Username (email)",
+    "portalPassword": "Password",
+    "portalPasswordHint": "At least 6 characters",
+    "portalPasswordEditHint": "Leave blank to keep the current password",
+    "portalLogin": "Portal login"
   },
   "clientProfile": {
     "title": "Client profile",
+    "portalTitle": "My portal",
+    "portalWelcome": "Welcome — your company data, content, and related information are here.",
     "backToList": "All clients",
     "tabInfo": "Client data",
     "tabPackage": "Package",

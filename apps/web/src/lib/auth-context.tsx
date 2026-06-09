@@ -16,6 +16,8 @@ interface User {
   locale: string;
   modelProfile?: { id: string } | null;
   employeeProfile?: { id: string } | null;
+  clientId?: string | null;
+  clientCompanyName?: string | null;
 }
 
 interface AuthContextType {
@@ -71,9 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = (await authApi.me(res.accessToken)) as unknown as User;
     setUser(me);
     const home =
-      me.role === 'model' && me.modelProfile?.id
-        ? `/models/${me.modelProfile.id}`
-        : getHomeForRole(me.role);
+      me.role === 'client' && me.clientId
+        ? `/clients/${me.clientId}`
+        : me.role === 'model' && me.modelProfile?.id
+          ? `/models/${me.modelProfile.id}`
+          : getHomeForRole(me.role);
     router.push(home);
   };
 

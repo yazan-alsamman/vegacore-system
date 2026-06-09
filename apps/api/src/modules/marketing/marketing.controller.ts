@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ContentStatus } from '@prisma/client';
+import { resolveClientScope } from '../../common/helpers/client-access';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { MarketingService } from './marketing.service';
@@ -19,8 +21,12 @@ export class MarketingController {
 
   @RequirePermissions('marketing.read')
   @Get('workspace')
-  getWorkspace(@Query('clientId') clientId?: string) {
-    return this.marketingService.getWorkspace(clientId);
+  getWorkspace(
+    @Query('clientId') clientId: string | undefined,
+    @CurrentUser() user: { role?: string; clientId?: string | null },
+  ) {
+    const scopedClientId = resolveClientScope(user, clientId);
+    return this.marketingService.getWorkspace(scopedClientId);
   }
 
   @RequirePermissions('marketing.create')

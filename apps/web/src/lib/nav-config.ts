@@ -18,9 +18,13 @@ export interface NavItem {
   module: string;
 }
 
+/** Sidebar items visible to client portal users only */
+export const CLIENT_PORTAL_NAV_KEYS = new Set(['myPortal', 'calendar', 'chat']);
+
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'dashboard', module: 'dashboard' },
   { href: '/clients', icon: Users, key: 'clients', module: 'clients' },
+  { href: '/clients', icon: Users, key: 'myPortal', module: 'clients' },
   { href: '/chat', icon: MessageSquare, key: 'chat', module: 'chat' },
   { href: '/calendar', icon: CalendarDays, key: 'calendar', module: 'calendar' },
   { href: '/models', icon: UserCircle, key: 'models', module: 'models' },
@@ -43,6 +47,10 @@ export const ROLE_HOME: Record<string, string> = {
   accountant: '/finance',
   client: '/clients',
 };
+
+export function isClientPortalRole(role?: string): boolean {
+  return role === 'client';
+}
 
 export function getHomeForRole(roleSlug?: string): string {
   if (!roleSlug) return '/dashboard';

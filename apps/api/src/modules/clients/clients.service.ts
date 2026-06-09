@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AssetType, Prisma, TaskStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { isClientPortalUser } from '../../common/helpers/client-access';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
@@ -26,12 +28,90 @@ export class ClientsService {
     private audit: AuditService,
   ) {}
 
-  async findAll(query: PaginationDto, status?: string) {
+  private portalUserSelect = {
+    id: true,
+    email: true,
+    status: true,
+    lastLoginAt: true,
+  } as const;
+
+  private async upsertPortalUser(
+    client: { id: string; companyName: string; ownerName: string },
+    portalEmail?: string,
+    portalPassword?: string,
+  ) {
+    const email = portalEmail?.trim().toLowerCase();
+    if (!email) return null;
+
+    const clientRole = await this.prisma.role.findUnique({ where: { slug: 'client' } });
+    if (!clientRole) throw new BadRequestException('Client role not found');
+
+    const nameParts = client.ownerName.trim().split(/\s+/);
+    const firstName = nameParts[0] || client.companyName;
+    const lastName = nameParts.slice(1).join(' ');
+
+    const existingForClient = await this.prisma.user.findFirst({
+      where: { clientId: client.id, role: { slug: 'client' } },
+    });
+
+    const emailTaken = await this.prisma.user.findFirst({
+      where: {
+        email,
+        ...(existingForClient ? { NOT: { id: existingForClient.id } } : {}),
+      },
+    });
+    if (emailTaken) throw new ConflictException('Portal email already in use');
+
+    if (existingForClient) {
+      const data: Prisma.UserUpdateInput = {
+        email,
+        firstName,
+        lastName,
+        role: { connect: { id: clientRole.id } },
+        client: { connect: { id: client.id } },
+        status: 'ACTIVE',
+      };
+      if (portalPassword?.trim()) {
+        data.passwordHash = await bcrypt.hash(portalPassword, 12);
+      }
+      return this.prisma.user.update({
+        where: { id: existingForClient.id },
+        data,
+        select: this.portalUserSelect,
+      });
+    }
+
+    if (!portalPassword?.trim()) {
+      throw new BadRequestException('Portal password is required when creating a new portal account');
+    }
+
+    return this.prisma.user.create({
+      data: {
+        email,
+        passwordHash: await bcrypt.hash(portalPassword, 12),
+        firstName,
+        lastName,
+        roleId: clientRole.id,
+        clientId: client.id,
+        locale: 'ar',
+      },
+      select: this.portalUserSelect,
+    });
+  }
+
+  async findAll(
+    query: PaginationDto,
+    status?: string,
+    user?: { role?: string; clientId?: string | null },
+  ) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
     const where: Prisma.ClientWhereInput = {};
+    if (isClientPortalUser(user) && user?.clientId) {
+      where.id = user.clientId;
+    }
     if (status) where.status = status as Prisma.EnumClientStatusFilter['equals'];
     if (query.search) {
       where.OR = [
@@ -50,6 +130,11 @@ export class ClientsService {
         include: {
           _count: { select: { projects: true, invoices: true } },
           packages: { where: { isActive: true }, take: 1 },
+          users: {
+            where: { role: { slug: 'client' } },
+            select: this.portalUserSelect,
+            take: 1,
+          },
         },
       }),
       this.prisma.client.count({ where }),
@@ -416,39 +501,63 @@ export class ClientsService {
   }
 
   async create(dto: CreateClientDto, userId?: string) {
+    const { portalEmail, portalPassword, ...clientData } = dto;
     const client = await this.prisma.client.create({
       data: {
-        ...dto,
+        ...clientData,
         onboardingDate: dto.onboardingDate ? new Date(dto.onboardingDate) : undefined,
         socialLinks: dto.socialLinks as Prisma.InputJsonValue,
       },
     });
+    const portalUser = await this.upsertPortalUser(client, portalEmail, portalPassword);
     await this.audit.log({ userId, action: 'CREATE', entity: 'client', entityId: client.id, newData: client as unknown as Prisma.InputJsonValue });
-    return client;
+    return { ...client, portalUser };
   }
 
   async update(id: string, dto: UpdateClientDto, userId?: string) {
     const existing = await this.findOne(id);
+    const { portalEmail, portalPassword, ...clientFields } = dto;
     const data: Prisma.ClientUpdateInput = {};
 
-    if (dto.companyName !== undefined) data.companyName = dto.companyName;
-    if (dto.ownerName !== undefined) data.ownerName = dto.ownerName;
-    if (dto.phone !== undefined) data.phone = dto.phone;
-    if (dto.email !== undefined) data.email = dto.email;
-    if (dto.country !== undefined) data.country = dto.country;
-    if (dto.businessType !== undefined) data.businessType = dto.businessType;
-    if (dto.status !== undefined) data.status = dto.status;
-    if (dto.notes !== undefined) data.notes = dto.notes;
-    if (dto.socialLinks !== undefined) {
-      data.socialLinks = this.cleanSocialLinks(dto.socialLinks) as Prisma.InputJsonValue;
+    if (clientFields.companyName !== undefined) data.companyName = clientFields.companyName;
+    if (clientFields.ownerName !== undefined) data.ownerName = clientFields.ownerName;
+    if (clientFields.phone !== undefined) data.phone = clientFields.phone;
+    if (clientFields.email !== undefined) data.email = clientFields.email;
+    if (clientFields.country !== undefined) data.country = clientFields.country;
+    if (clientFields.businessType !== undefined) data.businessType = clientFields.businessType;
+    if (clientFields.status !== undefined) data.status = clientFields.status;
+    if (clientFields.notes !== undefined) data.notes = clientFields.notes;
+    if (clientFields.socialLinks !== undefined) {
+      data.socialLinks = this.cleanSocialLinks(clientFields.socialLinks) as Prisma.InputJsonValue;
     }
-    if (dto.onboardingDate !== undefined) {
-      data.onboardingDate = dto.onboardingDate ? new Date(dto.onboardingDate) : null;
+    if (clientFields.onboardingDate !== undefined) {
+      data.onboardingDate = clientFields.onboardingDate ? new Date(clientFields.onboardingDate) : null;
     }
 
     const client = await this.prisma.client.update({ where: { id }, data });
+    let portalUser = await this.prisma.user.findFirst({
+      where: { clientId: id, role: { slug: 'client' } },
+      select: this.portalUserSelect,
+    });
+    if (portalEmail !== undefined || portalPassword !== undefined) {
+      const resolvedEmail = portalEmail?.trim() || portalUser?.email;
+      if (!resolvedEmail && portalPassword?.trim()) {
+        throw new BadRequestException('Portal email is required when setting a password');
+      }
+      if (resolvedEmail) {
+        portalUser = await this.upsertPortalUser(
+          {
+            id: client.id,
+            companyName: client.companyName,
+            ownerName: client.ownerName,
+          },
+          resolvedEmail,
+          portalPassword,
+        );
+      }
+    }
     await this.audit.log({ userId, action: 'UPDATE', entity: 'client', entityId: id, oldData: existing as unknown as Prisma.InputJsonValue, newData: client as unknown as Prisma.InputJsonValue });
-    return client;
+    return { ...client, portalUser };
   }
 
   async updateSocialLinks(

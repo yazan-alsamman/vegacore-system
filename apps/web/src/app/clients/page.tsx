@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CrudActions } from '@/components/admin/crud-actions';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -11,6 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { FormField, TextInput, SelectInput, TextArea, FormActions } from '@/components/ui/form-fields';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 
 interface Client {
@@ -23,6 +25,7 @@ interface Client {
   country?: string;
   businessType?: string;
   notes?: string;
+  users?: { id: string; email: string; status: string; lastLoginAt?: string }[];
 }
 
 const INITIAL = {
@@ -34,10 +37,12 @@ const INITIAL = {
   businessType: '',
   status: 'LEAD',
   notes: '',
+  portalEmail: '',
+  portalPassword: '',
 };
 
-function clientPayload(form: typeof INITIAL) {
-  return {
+function clientPayload(form: typeof INITIAL, isEdit: boolean) {
+  const payload: Record<string, string | undefined> = {
     companyName: form.companyName,
     ownerName: form.ownerName,
     email: form.email || undefined,
@@ -47,11 +52,16 @@ function clientPayload(form: typeof INITIAL) {
     status: form.status,
     notes: form.notes || undefined,
   };
+  if (form.portalEmail.trim()) payload.portalEmail = form.portalEmail.trim();
+  if (form.portalPassword.trim()) payload.portalPassword = form.portalPassword;
+  return payload;
 }
 
 export default function ClientsPage() {
   const t = useTranslations('common');
   const tc = useTranslations('clients');
+  const { user } = useAuth();
+  const router = useRouter();
   const { canCreate } = usePermissions();
   const { data, loading, refetch, token } = useApiData<{ data: Client[] }>('/clients');
   const [open, setOpen] = useState(false);
@@ -59,6 +69,12 @@ export default function ClientsPage() {
   const [form, setForm] = useState(INITIAL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (user?.role === 'client' && user.clientId) {
+      router.replace(`/clients/${user.clientId}`);
+    }
+  }, [user, router]);
 
   const set = (key: keyof typeof INITIAL, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -81,6 +97,8 @@ export default function ClientsPage() {
       businessType: item.businessType || '',
       status: item.status,
       notes: item.notes || '',
+      portalEmail: item.users?.[0]?.email || '',
+      portalPassword: '',
     });
     setError('');
     setOpen(true);
@@ -96,13 +114,13 @@ export default function ClientsPage() {
         await api(`/clients/${editId}`, {
           method: 'PATCH',
           token,
-          body: JSON.stringify(clientPayload(form)),
+          body: JSON.stringify(clientPayload(form, true)),
         });
       } else {
         await api('/clients', {
           method: 'POST',
           token,
-          body: JSON.stringify(clientPayload(form)),
+          body: JSON.stringify(clientPayload(form, false)),
         });
       }
       setOpen(false);
@@ -125,6 +143,14 @@ export default function ClientsPage() {
       alert(err instanceof Error ? err.message : 'Failed to delete');
     }
   };
+
+  if (user?.role === 'client') {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-vega-cyan border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout title={tc('title')} module="clients">
@@ -156,6 +182,11 @@ export default function ClientsPage() {
             },
             { key: 'ownerName', header: tc('owner') },
             { key: 'email', header: tc('email') },
+            {
+              key: 'portal',
+              header: tc('portalLogin'),
+              render: (item) => item.users?.[0]?.email || '—',
+            },
             { key: 'country', header: tc('country') },
             {
               key: 'status',
@@ -234,6 +265,29 @@ export default function ClientsPage() {
           <FormField label={tc('notes')}>
             <TextArea value={form.notes} onChange={(e) => set('notes', e.target.value)} />
           </FormField>
+
+          <div className="rounded-lg border border-vega-cyan/25 bg-vega-cyan/5 p-4 space-y-3">
+            <p className="text-sm font-semibold text-vega-cyan">{tc('portalSection')}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{tc('portalSectionHint')}</p>
+            <FormField label={tc('portalEmail')}>
+              <TextInput
+                type="email"
+                value={form.portalEmail}
+                onChange={(e) => set('portalEmail', e.target.value)}
+                placeholder="client@company.com"
+              />
+            </FormField>
+            <FormField label={tc('portalPassword')}>
+              <TextInput
+                type="password"
+                value={form.portalPassword}
+                onChange={(e) => set('portalPassword', e.target.value)}
+                placeholder={editId ? tc('portalPasswordEditHint') : tc('portalPasswordHint')}
+                autoComplete="new-password"
+              />
+            </FormField>
+          </div>
+
           <FormActions onCancel={() => setOpen(false)} submitLabel={t('save')} cancelLabel={t('cancel')} loading={saving} />
         </form>
       </Modal>

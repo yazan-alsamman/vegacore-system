@@ -14,6 +14,7 @@
     "prisma:sync-marketing": "ts-node prisma/sync-marketing-permissions.ts",
     "prisma:sync-general-manager": "ts-node prisma/sync-general-manager-permissions.ts",
     "prisma:sync-account-manager": "ts-node prisma/sync-account-manager-permissions.ts",
+    "prisma:sync-client-portal": "ts-node prisma/sync-client-portal-permissions.ts",
     "prisma:backfill-profiles": "ts-node prisma/backfill-employee-profiles.ts",
     "prisma:studio": "prisma studio"
   },

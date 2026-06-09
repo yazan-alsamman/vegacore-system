@@ -8,7 +8,7 @@ import { Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Logo } from '@/components/brand/logo';
 import { HexPattern } from '@/components/brand/hex-pattern';
-import { NAV_ITEMS } from '@/lib/nav-config';
+import { CLIENT_PORTAL_NAV_KEYS, isClientPortalRole, NAV_ITEMS } from '@/lib/nav-config';
 import { canAccessModule, isSuperAdmin } from '@/lib/permissions';
 import { useSidebar } from './sidebar-context';
 
@@ -19,11 +19,20 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { open, close } = useSidebar();
 
-  const visibleNav = NAV_ITEMS.filter((item) =>
-    user && (isSuperAdmin(user) || canAccessModule(user, item.module)),
-  ).map((item) => {
+  const isPortalClient = isClientPortalRole(user?.role);
+
+  const visibleNav = NAV_ITEMS.filter((item) => {
+    if (!user) return false;
+    if (item.key === 'clients' && isPortalClient) return false;
+    if (item.key === 'myPortal' && !isPortalClient) return false;
+    if (isPortalClient && !CLIENT_PORTAL_NAV_KEYS.has(item.key)) return false;
+    return isSuperAdmin(user) || canAccessModule(user, item.module);
+  }).map((item) => {
     if (item.key === 'models' && user?.role === 'model' && user.modelProfile?.id) {
       return { ...item, href: `/models/${user.modelProfile.id}` };
+    }
+    if (item.key === 'myPortal' && user?.clientId) {
+      return { ...item, href: `/clients/${user.clientId}` };
     }
     return item;
   });

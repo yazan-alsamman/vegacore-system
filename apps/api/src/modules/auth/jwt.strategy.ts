@@ -51,6 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       roleName: user.role.name,
       permissions,
       locale: user.locale,
+      clientId: user.clientId,
     };
   }
 }

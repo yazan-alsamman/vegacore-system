@@ -30,6 +30,7 @@ export class AuthService {
           },
         },
         modelProfile: { select: { id: true } },
+        client: { select: { id: true, companyName: true } },
       },
     });
 
@@ -72,6 +73,8 @@ export class AuthService {
         locale: user.locale,
         permissions,
         modelProfile: user.modelProfile,
+        clientId: user.clientId,
+        clientCompanyName: user.client?.companyName ?? null,
       },
       ...tokens,
     };
@@ -162,6 +165,7 @@ export class AuthService {
         },
         employeeProfile: true,
         modelProfile: true,
+        client: { select: { id: true, companyName: true } },
       },
     });
     if (!user) throw new UnauthorizedException();
@@ -182,6 +186,8 @@ export class AuthService {
       permissions,
       employeeProfile: user.employeeProfile,
       modelProfile: user.modelProfile,
+      clientId: user.clientId,
+      clientCompanyName: user.client?.companyName ?? null,
     };
   }
 

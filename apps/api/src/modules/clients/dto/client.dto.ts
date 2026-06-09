@@ -9,6 +9,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MinLength,
 } from 'class-validator';
 import { ClientStatus } from '@prisma/client';
 
@@ -60,6 +61,17 @@ export class CreateClientDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'Client portal login email (username)' })
+  @IsOptional()
+  @IsEmail()
+  portalEmail?: string;
+
+  @ApiPropertyOptional({ description: 'Client portal password (required when creating portal account)' })
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  portalPassword?: string;
 }
 
 export class UpdateClientDto extends PartialType(CreateClientDto) {}

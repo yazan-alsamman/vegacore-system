@@ -157,7 +157,15 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'reports.read', 'reports.generate',
     'calendar.read',
   ],
-  'client': ['projects.read', 'tasks.read'],
+  'client': [
+    'clients.read',
+    'marketing.read',
+    'media.read',
+    'finance.read',
+    'calendar.read',
+    'chat.read',
+    'chat.use',
+  ],
 };
 
 async function main() {
@@ -321,6 +329,21 @@ async function main() {
       businessType: 'Technology',
       status: 'ACTIVE',
       onboardingDate: new Date(),
+    },
+  });
+
+  const clientRole = roles.find((r) => r.slug === 'client')!;
+  await prisma.user.upsert({
+    where: { email: 'client@democorp.com' },
+    update: { clientId: client.id, roleId: clientRole.id, status: 'ACTIVE' },
+    create: {
+      email: 'client@democorp.com',
+      passwordHash: await bcrypt.hash('Client@123', 12),
+      firstName: 'John',
+      lastName: 'Demo',
+      roleId: clientRole.id,
+      clientId: client.id,
+      locale: 'ar',
     },
   });
 

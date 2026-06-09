@@ -6,6 +6,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "clients": "العملاء",
+    "myPortal": "بوابتي",
     "projects": "المشاريع",
     "tasks": "المهام",
     "chat": "شات الفريق",
@@ -215,10 +216,19 @@
     "status": "الحالة",
     "businessType": "نوع النشاط",
     "notes": "ملاحظات",
-    "viewProfile": "عرض الملف"
+    "viewProfile": "عرض الملف",
+    "portalSection": "بوابة العميل (تسجيل الدخول)",
+    "portalSectionHint": "يستخدم العميل البريد وكلمة المرور لتسجيل الدخول وعرض ملفه ومحتواه.",
+    "portalEmail": "اسم المستخدم (البريد)",
+    "portalPassword": "كلمة المرور",
+    "portalPasswordHint": "6 أحرف على الأقل",
+    "portalPasswordEditHint": "اتركه فارغاً للإبقاء على كلمة المرور الحالية",
+    "portalLogin": "دخول البوابة"
   },
   "clientProfile": {
     "title": "ملف العميل",
+    "portalTitle": "بوابتي",
+    "portalWelcome": "مرحباً بك — هنا تجد بياناتك ومحتواك وكل ما يخص شركتك.",
     "backToList": "كل العملاء",
     "tabInfo": "بيانات العميل",
     "tabPackage": "الباقة",
