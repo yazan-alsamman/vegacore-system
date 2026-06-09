@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus, Prisma } from '@prisma/client';
+import { isMarketingManager } from '../../common/helpers/client-access';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
 
@@ -49,9 +50,75 @@ export class MarketingService {
     };
   }
 
-  async getWorkspace(clientId?: string) {
-    const clientWhere = clientId ? { id: clientId } : {};
-    const shootWhere = clientId ? this.clientShootWhere(clientId) : {};
+  private async assignedClientIds(user?: { id?: string; role?: string }) {
+    if (!isMarketingManager(user) || !user?.id) return null;
+    const rows = await this.prisma.client.findMany({
+      where: { marketingManagerId: user.id },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  async getWorkspace(
+    clientId?: string,
+    user?: { id?: string; role?: string; clientId?: string | null },
+  ) {
+    const assignedIds = await this.assignedClientIds(user);
+
+    if (clientId && assignedIds && !assignedIds.includes(clientId)) {
+      throw new ForbiddenException('Access denied to this client');
+    }
+
+    const clientWhere: Prisma.ClientWhereInput = clientId
+      ? { id: clientId }
+      : assignedIds
+        ? { id: { in: assignedIds } }
+        : {};
+
+    const scopedClientIds = clientId ? [clientId] : assignedIds;
+
+    const shootWhere = clientId
+      ? this.clientShootWhere(clientId)
+      : scopedClientIds?.length
+        ? { OR: scopedClientIds.map((id) => this.clientShootWhere(id)) }
+        : assignedIds
+          ? { id: { in: [] } }
+          : {};
+
+    const contentWhere: Prisma.ContentCalendarWhereInput = clientId
+      ? { metadata: { path: ['clientId'], equals: clientId } }
+      : scopedClientIds?.length
+        ? { OR: scopedClientIds.map((id) => ({ metadata: { path: ['clientId'], equals: id } })) }
+        : assignedIds
+          ? { id: { in: [] } }
+          : {};
+
+    const scriptWhere: Prisma.ScriptWhereInput = clientId
+      ? { clientId }
+      : scopedClientIds?.length
+        ? { clientId: { in: scopedClientIds } }
+        : assignedIds
+          ? { clientId: { in: [] } }
+          : {};
+
+    const reelWhere: Prisma.VideoWhereInput = clientId
+      ? {
+          OR: [
+            { shoot: { project: { clientId } } },
+            { shoot: { equipment: { path: ['clientId'], equals: clientId } } },
+          ],
+        }
+      : scopedClientIds?.length
+        ? {
+            OR: scopedClientIds.flatMap((id) => [
+              { shoot: { project: { clientId: id } } },
+              { shoot: { equipment: { path: ['clientId'], equals: id } } },
+            ]),
+          }
+        : assignedIds
+          ? { id: { in: [] } }
+          : {};
+
     const [clients, calendar, scripts, shoots, reels, models, photographers] = await Promise.all([
       this.prisma.client.findMany({
         where: clientWhere,
@@ -59,11 +126,11 @@ export class MarketingService {
         orderBy: { companyName: 'asc' },
       }),
       this.prisma.contentCalendar.findMany({
-        where: clientId ? { metadata: { path: ['clientId'], equals: clientId } } : {},
+        where: contentWhere,
         orderBy: [{ publishDate: 'asc' }, { createdAt: 'desc' }],
       }),
       this.prisma.script.findMany({
-        where: clientId ? { clientId } : {},
+        where: scriptWhere,
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.shoot.findMany({
@@ -75,14 +142,7 @@ export class MarketingService {
         },
       }),
       this.prisma.video.findMany({
-        where: clientId
-          ? {
-              OR: [
-                { shoot: { project: { clientId } } },
-                { shoot: { equipment: { path: ['clientId'], equals: clientId } } },
-              ],
-            }
-          : {},
+        where: reelWhere,
         orderBy: { updatedAt: 'desc' },
         include: { shoot: { include: { project: { select: { clientId: true } } } } },
       }),

@@ -223,7 +223,14 @@
     "portalPassword": "Password",
     "portalPasswordHint": "At least 6 characters",
     "portalPasswordEditHint": "Leave blank to keep the current password",
-    "portalLogin": "Portal login"
+    "portalLogin": "Portal login",
+    "marketingManager": "Assigned marketing manager",
+    "marketingManagerPlaceholder": "Select marketing manager",
+    "noMarketingManager": "Not assigned",
+    "classification": "Client classification",
+    "classificationVVIP": "VVIP",
+    "classificationVIP": "VIP",
+    "classificationNormal": "Normal"
   },
   "clientProfile": {
     "title": "Client profile",

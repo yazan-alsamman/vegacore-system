@@ -11,7 +11,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { ClientStatus } from '@prisma/client';
+import { ClientClassification, ClientStatus } from '@prisma/client';
 
 export class CreateClientDto {
   @ApiProperty()
@@ -56,6 +56,16 @@ export class CreateClientDto {
   @IsOptional()
   @IsEnum(ClientStatus)
   status?: ClientStatus;
+
+  @ApiPropertyOptional({ enum: ClientClassification })
+  @IsOptional()
+  @IsEnum(ClientClassification)
+  classification?: ClientClassification;
+
+  @ApiPropertyOptional({ description: 'User id of assigned marketing manager' })
+  @IsOptional()
+  @IsString()
+  marketingManagerId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

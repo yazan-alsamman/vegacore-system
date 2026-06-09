@@ -9,6 +9,10 @@ export function isClientPortalUser(user?: ClientScopedUser): boolean {
   return user?.role === 'client';
 }
 
+export function isMarketingManager(user?: ClientScopedUser & { id?: string }): boolean {
+  return user?.role === 'marketing-manager';
+}
+
 export function assertClientAccess(user: ClientScopedUser | undefined, clientId: string) {
   if (isClientPortalUser(user) && user?.clientId !== clientId) {
     throw new ForbiddenException('Access denied to this client');

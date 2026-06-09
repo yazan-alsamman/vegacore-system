@@ -23,10 +23,10 @@ export class MarketingController {
   @Get('workspace')
   getWorkspace(
     @Query('clientId') clientId: string | undefined,
-    @CurrentUser() user: { role?: string; clientId?: string | null },
+    @CurrentUser() user: { id: string; role?: string; clientId?: string | null },
   ) {
     const scopedClientId = resolveClientScope(user, clientId);
-    return this.marketingService.getWorkspace(scopedClientId);
+    return this.marketingService.getWorkspace(scopedClientId, user);
   }
 
   @RequirePermissions('marketing.create')

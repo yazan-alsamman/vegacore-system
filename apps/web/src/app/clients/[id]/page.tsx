@@ -21,6 +21,7 @@ import { MarketingWorkspace } from '@/components/marketing/marketing-workspace';
 import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/lib/auth-context';
+import { classificationLabel, marketingManagerLabel } from '@/lib/client-fields';
 import { isClientPortalRole } from '@/lib/nav-config';
 import { fileSectionTitle, type FileSection } from '@/lib/client-file-sections';
 import { formatMoney } from '@/lib/money';
@@ -217,10 +218,24 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
                 <InfoRow label={tc('businessType')} value={String(client.businessType || '')} />
                 <InfoRow label={tc('startDate')} value={fmtDate(client.onboardingDate)} />
                 {!isPortalClient && (
-                  <InfoRow
-                    label={tcl('portalLogin')}
-                    value={data?.portalUser?.email || tc('portalNotSet')}
-                  />
+                  <>
+                    <InfoRow
+                      label={tcl('classification')}
+                      value={classificationLabel(tcl, String(client.classification || 'NORMAL'))}
+                    />
+                    <InfoRow
+                      label={tcl('marketingManager')}
+                      value={
+                        marketingManagerLabel(
+                          client.marketingManager as { firstName: string; lastName: string } | null,
+                        ) || tcl('noMarketingManager')
+                      }
+                    />
+                    <InfoRow
+                      label={tcl('portalLogin')}
+                      value={data?.portalUser?.email || tc('portalNotSet')}
+                    />
+                  </>
                 )}
               </SectionCard>
               <SocialMediaSection

@@ -14,6 +14,12 @@ import { useApiData } from '@/hooks/use-api-data';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import {
+  CLIENT_CLASSIFICATIONS,
+  classificationLabel,
+  marketingManagerLabel,
+  type MarketingManagerOption,
+} from '@/lib/client-fields';
 
 interface Client {
   id: string;
@@ -22,9 +28,12 @@ interface Client {
   email?: string;
   phone?: string;
   status: string;
+  classification?: string;
   country?: string;
   businessType?: string;
   notes?: string;
+  marketingManagerId?: string | null;
+  marketingManager?: MarketingManagerOption | null;
   users?: { id: string; email: string; status: string; lastLoginAt?: string }[];
 }
 
@@ -36,13 +45,15 @@ const INITIAL = {
   country: '',
   businessType: '',
   status: 'LEAD',
+  classification: 'NORMAL',
+  marketingManagerId: '',
   notes: '',
   portalEmail: '',
   portalPassword: '',
 };
 
-function clientPayload(form: typeof INITIAL, isEdit: boolean) {
-  const payload: Record<string, string | undefined> = {
+function clientPayload(form: typeof INITIAL) {
+  const payload: Record<string, string | null | undefined> = {
     companyName: form.companyName,
     ownerName: form.ownerName,
     email: form.email || undefined,
@@ -50,6 +61,8 @@ function clientPayload(form: typeof INITIAL, isEdit: boolean) {
     country: form.country || undefined,
     businessType: form.businessType || undefined,
     status: form.status,
+    classification: form.classification,
+    marketingManagerId: form.marketingManagerId.trim() || null,
     notes: form.notes || undefined,
   };
   if (form.portalEmail.trim()) payload.portalEmail = form.portalEmail.trim();
@@ -69,6 +82,8 @@ export default function ClientsPage() {
   const [form, setForm] = useState(INITIAL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [marketingManagers, setMarketingManagers] = useState<MarketingManagerOption[]>([]);
+  const canAssignManager = user?.role !== 'marketing-manager';
 
   useEffect(() => {
     if (user?.role === 'client' && user.clientId) {
@@ -79,14 +94,25 @@ export default function ClientsPage() {
   const set = (key: keyof typeof INITIAL, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const openCreate = () => {
+  const loadMarketingManagers = async () => {
+    if (!token || !canAssignManager) return;
+    try {
+      const list = await api<MarketingManagerOption[]>('/clients/marketing-managers/options', { token });
+      setMarketingManagers(Array.isArray(list) ? list : []);
+    } catch {
+      setMarketingManagers([]);
+    }
+  };
+
+  const openCreate = async () => {
     setEditId(null);
     setForm(INITIAL);
     setError('');
     setOpen(true);
+    await loadMarketingManagers();
   };
 
-  const openEdit = (item: Client) => {
+  const openEdit = async (item: Client) => {
     setEditId(item.id);
     setForm({
       companyName: item.companyName,
@@ -96,12 +122,15 @@ export default function ClientsPage() {
       country: item.country || '',
       businessType: item.businessType || '',
       status: item.status,
+      classification: item.classification || 'NORMAL',
+      marketingManagerId: item.marketingManagerId || item.marketingManager?.id || '',
       notes: item.notes || '',
       portalEmail: item.users?.[0]?.email || '',
       portalPassword: '',
     });
     setError('');
     setOpen(true);
+    await loadMarketingManagers();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,13 +143,13 @@ export default function ClientsPage() {
         await api(`/clients/${editId}`, {
           method: 'PATCH',
           token,
-          body: JSON.stringify(clientPayload(form, true)),
+          body: JSON.stringify(clientPayload(form)),
         });
       } else {
         await api('/clients', {
           method: 'POST',
           token,
-          body: JSON.stringify(clientPayload(form, false)),
+          body: JSON.stringify(clientPayload(form)),
         });
       }
       setOpen(false);
@@ -188,6 +217,16 @@ export default function ClientsPage() {
               render: (item) => item.users?.[0]?.email || '—',
             },
             { key: 'country', header: tc('country') },
+            {
+              key: 'classification',
+              header: tc('classification'),
+              render: (item) => classificationLabel(tc, item.classification),
+            },
+            {
+              key: 'marketingManager',
+              header: tc('marketingManager'),
+              render: (item) => marketingManagerLabel(item.marketingManager) || tc('noMarketingManager'),
+            },
             {
               key: 'status',
               header: tc('status'),
@@ -262,6 +301,32 @@ export default function ClientsPage() {
           <FormField label={tc('businessType')}>
             <TextInput value={form.businessType} onChange={(e) => set('businessType', e.target.value)} />
           </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label={tc('classification')}>
+              <SelectInput value={form.classification} onChange={(e) => set('classification', e.target.value)}>
+                {CLIENT_CLASSIFICATIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {classificationLabel(tc, c)}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+            {canAssignManager && (
+              <FormField label={tc('marketingManager')}>
+                <SelectInput
+                  value={form.marketingManagerId}
+                  onChange={(e) => set('marketingManagerId', e.target.value)}
+                >
+                  <option value="">{tc('marketingManagerPlaceholder')}</option>
+                  {marketingManagers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {marketingManagerLabel(m)}
+                    </option>
+                  ))}
+                </SelectInput>
+              </FormField>
+            )}
+          </div>
           <FormField label={tc('notes')}>
             <TextArea value={form.notes} onChange={(e) => set('notes', e.target.value)} />
           </FormField>

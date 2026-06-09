@@ -7,6 +7,12 @@ import { CrudActions } from '@/components/admin/crud-actions';
 import { Modal } from '@/components/ui/modal';
 import { FormField, TextInput, SelectInput, TextArea, FormActions } from '@/components/ui/form-fields';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '@/lib/auth-context';
+import {
+  CLIENT_CLASSIFICATIONS,
+  classificationLabel,
+  type MarketingManagerOption,
+} from '@/lib/client-fields';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import {
@@ -317,10 +323,13 @@ export function ClientInfoEditor({
   const t = useTranslations('common');
   const tc = useTranslations('clientProfile');
   const tcl = useTranslations('clients');
+  const { user } = useAuth();
   const { canUpdate } = usePermissions();
+  const canAssignManager = user?.role !== 'marketing-manager';
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [marketingManagers, setMarketingManagers] = useState<MarketingManagerOption[]>([]);
 
   const buildForm = () => ({
     ownerName: String(client.ownerName || ''),
@@ -331,6 +340,12 @@ export function ClientInfoEditor({
     businessType: String(client.businessType || ''),
     onboardingDate: client.onboardingDate ? String(client.onboardingDate).slice(0, 10) : '',
     status: String(client.status || 'ACTIVE'),
+    classification: String(client.classification || 'NORMAL'),
+    marketingManagerId: String(
+      client.marketingManagerId ||
+        (client.marketingManager as { id?: string } | null | undefined)?.id ||
+        '',
+    ),
     notes: String(client.notes || ''),
     portalEmail: portalUser?.email || '',
     portalPassword: '',
@@ -338,10 +353,21 @@ export function ClientInfoEditor({
 
   const [form, setForm] = useState(buildForm);
 
-  const openModal = () => {
+  const loadMarketingManagers = async () => {
+    if (!token || !canAssignManager) return;
+    try {
+      const list = await api<MarketingManagerOption[]>('/clients/marketing-managers/options', { token });
+      setMarketingManagers(Array.isArray(list) ? list : []);
+    } catch {
+      setMarketingManagers([]);
+    }
+  };
+
+  const openModal = async () => {
     setForm(buildForm());
     setError('');
     setOpen(true);
+    await loadMarketingManagers();
   };
 
   if (!canUpdate('clients')) return null;
@@ -352,7 +378,7 @@ export function ClientInfoEditor({
     setSaving(true);
     setError('');
     try {
-      const payload: Record<string, string | undefined> = {
+      const payload: Record<string, string | null | undefined> = {
         ownerName: form.ownerName,
         companyName: form.companyName,
         phone: form.phone || undefined,
@@ -361,6 +387,8 @@ export function ClientInfoEditor({
         businessType: form.businessType || undefined,
         onboardingDate: form.onboardingDate || undefined,
         status: form.status,
+        classification: form.classification,
+        marketingManagerId: canAssignManager ? (form.marketingManagerId.trim() || null) : undefined,
         notes: form.notes || undefined,
       };
       if (form.portalEmail.trim()) payload.portalEmail = form.portalEmail.trim();
@@ -419,6 +447,35 @@ export function ClientInfoEditor({
               <option value="CHURNED">CHURNED</option>
             </SelectInput>
           </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label={tcl('classification')}>
+              <SelectInput
+                value={form.classification}
+                onChange={(e) => setForm({ ...form, classification: e.target.value })}
+              >
+                {CLIENT_CLASSIFICATIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {classificationLabel(tcl, c)}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+            {canAssignManager && (
+              <FormField label={tcl('marketingManager')}>
+                <SelectInput
+                  value={form.marketingManagerId}
+                  onChange={(e) => setForm({ ...form, marketingManagerId: e.target.value })}
+                >
+                  <option value="">{tcl('marketingManagerPlaceholder')}</option>
+                  {marketingManagers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {`${m.firstName} ${m.lastName}`.trim()}
+                    </option>
+                  ))}
+                </SelectInput>
+              </FormField>
+            )}
+          </div>
           <FormField label={tc('notes')}>
             <TextArea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </FormField>

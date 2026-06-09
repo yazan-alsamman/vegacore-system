@@ -22,6 +22,12 @@ enum ClientStatus {
   CHURNED
 }
 
+enum ClientClassification {
+  VVIP
+  VIP
+  NORMAL
+}
+
 enum ProjectStatus {
   PLANNING
   IN_PROGRESS
@@ -219,6 +225,7 @@ model User {
   reports            SecurityReport[]
   phaseLeads         ProjectPhase[]      @relation("PhaseLead")
   assignedIssues     ProjectIssue[]      @relation("IssueAssignee")
+  managedClients     Client[]            @relation("ClientMarketingManager")
 
   @@index([email])
   @@index([roleId])
@@ -267,11 +274,14 @@ model Client {
   socialLinks    Json?
   businessType   String?
   onboardingDate DateTime?
-  status         ClientStatus @default(LEAD)
-  notes              String?
-  assetFileSections  Json?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  status               ClientStatus           @default(LEAD)
+  classification       ClientClassification   @default(NORMAL)
+  marketingManagerId   String?
+  marketingManager     User?                  @relation("ClientMarketingManager", fields: [marketingManagerId], references: [id], onDelete: SetNull)
+  notes                String?
+  assetFileSections    Json?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
   users        User[]
   packages     ClientPackage[]
@@ -286,6 +296,8 @@ model Client {
   @@index([companyName])
   @@index([status])
   @@index([email])
+  @@index([marketingManagerId])
+  @@index([classification])
   @@map("clients")
 }
 

@@ -223,7 +223,14 @@
     "portalPassword": "كلمة المرور",
     "portalPasswordHint": "6 أحرف على الأقل",
     "portalPasswordEditHint": "اتركه فارغاً للإبقاء على كلمة المرور الحالية",
-    "portalLogin": "دخول البوابة"
+    "portalLogin": "دخول البوابة",
+    "marketingManager": "مدير التسويق المسؤول",
+    "marketingManagerPlaceholder": "اختر مدير تسويق",
+    "noMarketingManager": "غير محدد",
+    "classification": "تصنيف العميل",
+    "classificationVVIP": "VVIP",
+    "classificationVIP": "VIP",
+    "classificationNormal": "Normal"
   },
   "clientProfile": {
     "title": "ملف العميل",

@@ -1,8 +1,8 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AssetType, Prisma, TaskStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { isClientPortalUser } from '../../common/helpers/client-access';
+import { isClientPortalUser, isMarketingManager } from '../../common/helpers/client-access';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { PaginationDto, paginate } from '../../common/dto/pagination.dto';
@@ -34,6 +34,70 @@ export class ClientsService {
     status: true,
     lastLoginAt: true,
   } as const;
+
+  private marketingManagerSelect = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+  } as const;
+
+  async assertClientAccess(
+    user: { id?: string; role?: string; clientId?: string | null } | undefined,
+    clientId: string,
+  ) {
+    if (isClientPortalUser(user)) {
+      if (user?.clientId !== clientId) {
+        throw new ForbiddenException('Access denied to this client');
+      }
+      return;
+    }
+
+    if (isMarketingManager(user) && user?.id) {
+      const client = await this.prisma.client.findUnique({
+        where: { id: clientId },
+        select: { marketingManagerId: true },
+      });
+      if (!client) throw new NotFoundException('Client not found');
+      if (client.marketingManagerId !== user.id) {
+        throw new ForbiddenException('Access denied to this client');
+      }
+    }
+  }
+
+  private applyListScope(
+    where: Prisma.ClientWhereInput,
+    user?: { id?: string; role?: string; clientId?: string | null },
+  ) {
+    if (isClientPortalUser(user) && user?.clientId) {
+      where.id = user.clientId;
+      return;
+    }
+    if (isMarketingManager(user) && user?.id) {
+      where.marketingManagerId = user.id;
+    }
+  }
+
+  private async resolveMarketingManagerId(managerId?: string | null) {
+    if (managerId === undefined) return undefined;
+    const trimmed = managerId?.trim();
+    if (!trimmed) return null;
+
+    const manager = await this.prisma.user.findFirst({
+      where: { id: trimmed, role: { slug: 'marketing-manager' }, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (!manager) throw new BadRequestException('Marketing manager not found');
+    return manager.id;
+  }
+
+  listMarketingManagers() {
+    return this.prisma.user.findMany({
+      where: { role: { slug: 'marketing-manager' }, status: 'ACTIVE' },
+      select: this.marketingManagerSelect,
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+  }
 
   private async upsertPortalUser(
     client: { id: string; companyName: string; ownerName: string },
@@ -102,16 +166,14 @@ export class ClientsService {
   async findAll(
     query: PaginationDto,
     status?: string,
-    user?: { role?: string; clientId?: string | null },
+    user?: { id?: string; role?: string; clientId?: string | null },
   ) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
     const where: Prisma.ClientWhereInput = {};
-    if (isClientPortalUser(user) && user?.clientId) {
-      where.id = user.clientId;
-    }
+    this.applyListScope(where, user);
     if (status) where.status = status as Prisma.EnumClientStatusFilter['equals'];
     if (query.search) {
       where.OR = [
@@ -130,6 +192,7 @@ export class ClientsService {
         include: {
           _count: { select: { projects: true, invoices: true } },
           packages: { where: { isActive: true }, take: 1 },
+          marketingManager: { select: this.marketingManagerSelect },
           users: {
             where: { role: { slug: 'client' } },
             select: this.portalUserSelect,
@@ -168,6 +231,7 @@ export class ClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id },
       include: {
+        marketingManager: { select: this.marketingManagerSelect },
         packages: { orderBy: { isActive: 'desc' } },
         assets: { orderBy: { createdAt: 'desc' } },
         contracts: { orderBy: { createdAt: 'desc' } },
@@ -326,6 +390,9 @@ export class ClientsService {
         businessType: client.businessType,
         onboardingDate: client.onboardingDate,
         status: client.status,
+        classification: client.classification,
+        marketingManagerId: client.marketingManagerId,
+        marketingManager: client.marketingManager,
         notes: client.notes,
         createdAt: client.createdAt,
         updatedAt: client.updatedAt,
@@ -507,10 +574,13 @@ export class ClientsService {
   }
 
   async create(dto: CreateClientDto, userId?: string) {
-    const { portalEmail, portalPassword, ...clientData } = dto;
+    const { portalEmail, portalPassword, marketingManagerId, ...clientData } = dto;
+    const resolvedManagerId = await this.resolveMarketingManagerId(marketingManagerId);
     const client = await this.prisma.client.create({
       data: {
         ...clientData,
+        classification: dto.classification || 'NORMAL',
+        marketingManagerId: resolvedManagerId ?? undefined,
         onboardingDate: dto.onboardingDate ? new Date(dto.onboardingDate) : undefined,
         socialLinks: dto.socialLinks as Prisma.InputJsonValue,
       },
@@ -522,7 +592,7 @@ export class ClientsService {
 
   async update(id: string, dto: UpdateClientDto, userId?: string) {
     const existing = await this.findOne(id);
-    const { portalEmail, portalPassword, ...clientFields } = dto;
+    const { portalEmail, portalPassword, marketingManagerId, ...clientFields } = dto;
     const data: Prisma.ClientUpdateInput = {};
 
     if (clientFields.companyName !== undefined) data.companyName = clientFields.companyName;
@@ -532,7 +602,14 @@ export class ClientsService {
     if (clientFields.country !== undefined) data.country = clientFields.country;
     if (clientFields.businessType !== undefined) data.businessType = clientFields.businessType;
     if (clientFields.status !== undefined) data.status = clientFields.status;
+    if (clientFields.classification !== undefined) data.classification = clientFields.classification;
     if (clientFields.notes !== undefined) data.notes = clientFields.notes;
+    if (marketingManagerId !== undefined) {
+      const resolvedManagerId = await this.resolveMarketingManagerId(marketingManagerId);
+      data.marketingManager = resolvedManagerId
+        ? { connect: { id: resolvedManagerId } }
+        : { disconnect: true };
+    }
     if (clientFields.socialLinks !== undefined) {
       data.socialLinks = this.cleanSocialLinks(clientFields.socialLinks) as Prisma.InputJsonValue;
     }
