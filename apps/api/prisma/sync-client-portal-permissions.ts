@@ -1,5 +1,5 @@
 /**
- * Sync client portal role permissions + demo portal account.
+ * Sync client portal role permissions + demo client + portal account.
  * Run: npm run prisma:sync-client-portal
  */
 import { PrismaClient } from '@prisma/client';
@@ -47,11 +47,27 @@ async function main() {
 
   console.log(`client: ${permissions.length} portal permissions synced`);
 
-  const demoClient = await prisma.client.findUnique({ where: { id: DEMO_CLIENT_ID } });
-  if (!demoClient) {
-    console.log('demo client record not found — skip portal user (run full seed first)');
-    return;
-  }
+  const demoClient = await prisma.client.upsert({
+    where: { id: DEMO_CLIENT_ID },
+    update: {
+      companyName: 'Demo Corp',
+      ownerName: 'John Demo',
+      status: 'ACTIVE',
+    },
+    create: {
+      id: DEMO_CLIENT_ID,
+      companyName: 'Demo Corp',
+      ownerName: 'John Demo',
+      email: 'demo@democorp.com',
+      phone: '+1234567890',
+      country: 'UAE',
+      businessType: 'Technology',
+      status: 'ACTIVE',
+      onboardingDate: new Date(),
+    },
+  });
+
+  console.log(`demo client ready: ${demoClient.companyName} (${demoClient.id})`);
 
   const passwordHash = await bcrypt.hash(DEMO_PORTAL_PASSWORD, 12);
   await prisma.user.upsert({
