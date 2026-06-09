@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isClientPortalUser } from '../../common/helpers/client-access';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type CalendarEventType = 'SHOOT' | 'REEL_PUBLISH' | 'DELIVERY' | 'MEETING';
@@ -18,6 +19,8 @@ export interface CalendarEvent {
 interface AuthUser {
   id: string;
   permissions: string[];
+  role?: string;
+  clientId?: string | null;
 }
 
 @Injectable()
@@ -49,8 +52,85 @@ export class CalendarService {
     return { start, end };
   }
 
+  /** Client portal: only this client's publish dates, shoots, and meetings. */
+  private async getClientPortalEvents(clientId: string, start: Date, end: Date): Promise<CalendarEvent[]> {
+    const events: CalendarEvent[] = [];
+    const marketingLink = `/clients/${clientId}?tab=marketing`;
+
+    const [content, shoots, meetings] = await Promise.all([
+      this.prisma.contentCalendar.findMany({
+        where: {
+          publishDate: { gte: start, lte: end },
+          metadata: { path: ['clientId'], equals: clientId },
+        },
+      }),
+      this.prisma.shoot.findMany({
+        where: {
+          scheduledAt: { gte: start, lte: end },
+          equipment: { path: ['clientId'], equals: clientId },
+        },
+      }),
+      this.prisma.meeting.findMany({
+        where: {
+          clientId,
+          startTime: { lte: end },
+          endTime: { gte: start },
+        },
+      }),
+    ]);
+
+    for (const c of content) {
+      if (!c.publishDate) continue;
+      events.push({
+        id: `content:${c.id}`,
+        type: 'REEL_PUBLISH',
+        title: c.title,
+        description: c.platform ? `${c.platform} · ${c.status}` : c.status,
+        start: c.publishDate.toISOString(),
+        allDay: true,
+        link: marketingLink,
+        status: c.status,
+      });
+    }
+
+    for (const s of shoots) {
+      if (!s.scheduledAt) continue;
+      events.push({
+        id: `shoot:${s.id}`,
+        type: 'SHOOT',
+        title: s.title,
+        description: s.location || undefined,
+        start: s.scheduledAt.toISOString(),
+        end: new Date(s.scheduledAt.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        allDay: false,
+        link: marketingLink,
+        status: s.status,
+      });
+    }
+
+    for (const m of meetings) {
+      events.push({
+        id: `meeting:${m.id}`,
+        type: 'MEETING',
+        title: m.title,
+        description: m.location || m.meetingUrl || undefined,
+        start: m.startTime.toISOString(),
+        end: m.endTime.toISOString(),
+        allDay: false,
+        link: `/clients/${clientId}`,
+      });
+    }
+
+    return events.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  }
+
   async getEvents(user: AuthUser, from?: string, to?: string) {
     const { start, end } = this.range(from, to);
+
+    if (isClientPortalUser(user) && user.clientId) {
+      return this.getClientPortalEvents(user.clientId, start, end);
+    }
+
     const { id: userId, permissions } = user;
     const events: CalendarEvent[] = [];
 
@@ -242,7 +322,7 @@ export class CalendarService {
       });
     };
 
-    if (this.can(permissions, 'media.read')) {
+    if (this.can(permissions, 'media.read') && !isClientPortalUser(user)) {
       for (const s of shootsMedia) pushShootEvent(s);
     }
 
@@ -264,7 +344,7 @@ export class CalendarService {
       });
     }
 
-    if (this.can(permissions, 'marketing.read')) {
+    if (this.can(permissions, 'marketing.read') && !isClientPortalUser(user)) {
       const teamContent = await this.prisma.contentCalendar.findMany({
         where: { publishDate: { gte: start, lte: end } },
       });

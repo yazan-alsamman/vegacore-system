@@ -13,7 +13,7 @@ export class CalendarController {
   @RequirePermissions('calendar.read')
   @Get('events')
   getEvents(
-    @CurrentUser() user: { id: string; permissions: string[] },
+    @CurrentUser() user: { id: string; permissions: string[]; role?: string; clientId?: string | null },
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
