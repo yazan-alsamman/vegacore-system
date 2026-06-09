@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { CrudActions } from '@/components/admin/crud-actions';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DataTable } from '@/components/data-table';
 import { Modal } from '@/components/ui/modal';
@@ -40,6 +41,7 @@ const EMPTY = {
   phone: '',
   roleId: '',
   department: '' as '' | Department,
+  status: 'ACTIVE',
 };
 
 function departmentLabel(th: (key: string) => string, value?: string | null) {
@@ -52,18 +54,20 @@ export default function HrPage() {
   const t = useTranslations('common');
   const th = useTranslations('hr');
   const { user } = useAuth();
-  const { canCreate } = usePermissions();
+  const { canCreate, canUpdate } = usePermissions();
   const canAddEmployee = canCreate('users');
+  const canEditEmployee = canUpdate('users');
   const { data, loading, error: loadError, refetch, token } = useApiData<TeamUser[]>('/users/team');
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
   const loadRoles = useCallback(async (): Promise<RoleOption[]> => {
-    if (!token || !canAddEmployee) return [];
+    if (!token || (!canAddEmployee && !canEditEmployee)) return [];
     setRolesLoading(true);
     try {
       const list = await api<RoleOption[]>('/users/roles/options', { token });
@@ -76,20 +80,39 @@ export default function HrPage() {
     } finally {
       setRolesLoading(false);
     }
-  }, [token, canAddEmployee]);
+  }, [token, canAddEmployee, canEditEmployee]);
 
   useEffect(() => {
-    if (!user || !canAddEmployee) return;
+    if (!user || (!canAddEmployee && !canEditEmployee)) return;
     void loadRoles();
-  }, [user?.id, canAddEmployee, loadRoles]);
+  }, [user?.id, canAddEmployee, canEditEmployee, loadRoles]);
 
   const staff = data || [];
 
   const openCreate = async () => {
+    setEditId(null);
     setFormError('');
     setOpen(true);
     const list = roles.length ? roles : await loadRoles();
     setForm({ ...EMPTY, roleId: list[0]?.id || '' });
+  };
+
+  const openEdit = async (item: TeamUser) => {
+    setEditId(item.id);
+    setFormError('');
+    setOpen(true);
+    if (!roles.length) await loadRoles();
+    const dept = item.employeeProfile?.department;
+    setForm({
+      firstName: item.firstName,
+      lastName: item.lastName,
+      email: item.email,
+      password: '',
+      phone: item.phone || '',
+      roleId: item.role.id,
+      department: (dept === 'marketing' || dept === 'programming' ? dept : '') as '' | Department,
+      status: item.status || 'ACTIVE',
+    });
   };
 
   const save = async (e: React.FormEvent) => {
@@ -98,20 +121,35 @@ export default function HrPage() {
     setSaving(true);
     setFormError('');
     try {
-      await api('/users', {
-        method: 'POST',
-        token,
-        body: JSON.stringify({
+      if (editId) {
+        const body: Record<string, string | undefined> = {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           email: form.email.trim(),
-          password: form.password,
           phone: form.phone.trim() || undefined,
           roleId: form.roleId,
           department: form.department.trim() || undefined,
-        }),
-      });
+          status: form.status,
+        };
+        if (form.password.trim()) body.password = form.password;
+        await api(`/users/${editId}`, { method: 'PATCH', token, body: JSON.stringify(body) });
+      } else {
+        await api('/users', {
+          method: 'POST',
+          token,
+          body: JSON.stringify({
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            email: form.email.trim(),
+            password: form.password,
+            phone: form.phone.trim() || undefined,
+            roleId: form.roleId,
+            department: form.department.trim() || undefined,
+          }),
+        });
+      }
       setOpen(false);
+      setEditId(null);
       setForm(EMPTY);
       await refetch();
     } catch (err) {
@@ -162,12 +200,27 @@ export default function HrPage() {
                 </span>
               ),
             },
+            ...(canEditEmployee
+              ? [
+                  {
+                    key: 'actions',
+                    header: t('actions'),
+                    render: (item: TeamUser) => (
+                      <CrudActions module="users" onEdit={() => void openEdit(item)} />
+                    ),
+                  },
+                ]
+              : []),
           ]}
           data={staff}
         />
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={th('addEmployee')}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={editId ? th('editEmployee') : th('addEmployee')}
+      >
         <form onSubmit={save} className="space-y-4 max-h-[70vh] overflow-y-auto pe-1">
           {formError && <div className="text-sm text-vega-red">{formError}</div>}
           <FormGrid>
@@ -181,14 +234,15 @@ export default function HrPage() {
           <FormField label={th('email')} required>
             <TextInput type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           </FormField>
-          <FormField label={th('password')} required>
+          <FormField label={editId ? th('newPassword') : th('password')} required={!editId}>
             <TextInput
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               minLength={6}
-              required
+              required={!editId}
               autoComplete="new-password"
+              placeholder={editId ? th('passwordEditHint') : undefined}
             />
           </FormField>
           <FormField label={th('role')} required>
@@ -205,9 +259,6 @@ export default function HrPage() {
                 </option>
               ))}
             </SelectInput>
-            {!rolesLoading && roles.length === 0 && (
-              <p className="mt-1 text-xs text-vega-red">{th('rolesLoadError')}</p>
-            )}
           </FormField>
           <FormField label={th('phone')}>
             <TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -225,6 +276,14 @@ export default function HrPage() {
               ))}
             </SelectInput>
           </FormField>
+          {editId && (
+            <FormField label={t('status')}>
+              <SelectInput value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <option value="ACTIVE">{th('statusActive')}</option>
+                <option value="INACTIVE">{th('statusInactive')}</option>
+              </SelectInput>
+            </FormField>
+          )}
           <FormActions onCancel={() => setOpen(false)} submitLabel={t('save')} cancelLabel={t('cancel')} loading={saving} />
         </form>
       </Modal>
