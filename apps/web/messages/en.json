@@ -427,6 +427,8 @@
     "addScript": "Add script",
     "ideaContent": "Idea / content",
     "script": "Script",
+    "viewFullScript": "View full script",
+    "scriptModalTitle": "Script — {title}",
     "contentStatus": "Content status",
     "publishDate": "Publish date",
     "clientScripts": "Client scripts",

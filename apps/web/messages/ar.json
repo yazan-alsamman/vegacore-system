@@ -427,6 +427,8 @@
     "addScript": "إضافة سكربت",
     "ideaContent": "الفكرة / المحتوى",
     "script": "السكربت",
+    "viewFullScript": "عرض السكربت كاملاً",
+    "scriptModalTitle": "السكربت — {title}",
     "contentStatus": "حالة المحتوى",
     "publishDate": "موعد النشر",
     "clientScripts": "سكربتات العميل",

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Trash2 } from 'lucide-react';
+import { Maximize2, Plus, Trash2 } from 'lucide-react';
 import { MonthNav } from '@/components/marketing/month-nav';
+import { Modal } from '@/components/ui/modal';
 import { currentMonthKey, defaultDatetimeInMonth, itemInMonth } from '@/components/marketing/month-utils';
 import { api } from '@/lib/api';
 
@@ -154,6 +155,112 @@ function ReadText({ value, multiline }: { value: string; multiline?: boolean }) 
     >
       {value}
     </p>
+  );
+}
+
+function ScriptCell({
+  value,
+  canEdit,
+  onChange,
+  title,
+  expandLabel,
+  saveLabel,
+  cancelLabel,
+  emptyLabel,
+}: {
+  value: string;
+  canEdit: boolean;
+  onChange: (next: string) => void;
+  title: string;
+  expandLabel: string;
+  saveLabel: string;
+  cancelLabel: string;
+  emptyLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (open) setDraft(value);
+  }, [open, value]);
+
+  const save = () => {
+    onChange(draft);
+    setOpen(false);
+  };
+
+  const hasContent = Boolean(value.trim());
+
+  return (
+    <>
+      <div className="space-y-2">
+        {hasContent ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="group w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2.5 text-start transition-colors hover:border-vega-cyan/40 hover:bg-vega-cyan/5"
+          >
+            <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)] break-words">
+              {value}
+            </p>
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-vega-cyan opacity-80 group-hover:opacity-100">
+              <Maximize2 className="h-3.5 w-3.5" />
+              {expandLabel}
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1 rounded-lg border border-dashed border-vega-cyan/35 px-3 py-2 text-xs font-semibold text-vega-cyan hover:bg-vega-cyan/10"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {canEdit ? expandLabel : emptyLabel}
+          </button>
+        )}
+      </div>
+
+      <Modal open={open} onClose={() => setOpen(false)} title={title} size="xl">
+        {canEdit ? (
+          <div className="space-y-4">
+            <textarea
+              className={`${fieldBase} min-h-[min(60vh,420px)] resize-y text-base leading-relaxed`}
+              value={draft}
+              placeholder={title}
+              rows={14}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+            />
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
+              >
+                {cancelLabel}
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                className="rounded-lg bg-vega-cyan px-4 py-2 text-sm font-semibold text-vega-navy hover:bg-vega-cyan/90"
+              >
+                {saveLabel}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 px-4 py-4">
+            {hasContent ? (
+              <p className="whitespace-pre-wrap text-base leading-loose text-[var(--color-text)] break-words">
+                {value}
+              </p>
+            ) : (
+              <p className="text-sm text-[var(--color-text-secondary)]">{emptyLabel}</p>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
 
@@ -369,17 +476,16 @@ export function ContentCalendarTable({
                       )}
                     </td>
                     <td className={tdClass}>
-                      {canEdit ? (
-                        <textarea
-                          className={`${fieldBase} min-h-[88px] resize-y leading-relaxed`}
-                          value={row.script}
-                          placeholder={t('script')}
-                          rows={3}
-                          onChange={(e) => updateRow(row.id, { script: e.target.value })}
-                        />
-                      ) : (
-                        <ReadText value={row.script} multiline />
-                      )}
+                      <ScriptCell
+                        value={row.script}
+                        canEdit={canEdit}
+                        onChange={(script) => updateRow(row.id, { script })}
+                        title={t('scriptModalTitle', { title: row.title || t('colTitle') })}
+                        expandLabel={t('viewFullScript')}
+                        saveLabel={tc('save')}
+                        cancelLabel={tc('cancel')}
+                        emptyLabel={tc('noData')}
+                      />
                     </td>
                     <td className={tdClass}>
                       {canEdit ? (
