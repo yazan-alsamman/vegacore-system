@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Trash2 } from 'lucide-react';
+import { Clapperboard, Trash2 } from 'lucide-react';
 import { MonthNav } from '@/components/marketing/month-nav';
+import { Modal } from '@/components/ui/modal';
 import { currentMonthKey, defaultDatetimeInMonth, itemInMonth } from '@/components/marketing/month-utils';
 import { api } from '@/lib/api';
 
@@ -40,6 +41,7 @@ export interface CalendarReelItem {
 
 interface ShootRowState {
   id: string;
+  title: string;
   scheduledAt: string;
   modelId: string;
   photographerUserId: string;
@@ -104,6 +106,7 @@ function itemToRow(item: ShootItem): ShootRowState {
   const eq = parseEquipment(item.equipment);
   return {
     id: item.id,
+    title: item.title || '',
     scheduledAt: toDatetimeLocal(item.scheduledAt),
     modelId: eq.modelId,
     photographerUserId: eq.photographerUserId,
@@ -111,6 +114,145 @@ function itemToRow(item: ShootItem): ShootRowState {
     reelsCount: eq.reelsCount,
     contentCalendarIds: eq.contentCalendarIds,
   };
+}
+
+function resolveReelLabels(
+  ids: string[],
+  calendar: CalendarReelItem[],
+  shootTitle: string,
+  unknownLabel: string,
+): string[] {
+  if (!ids.length) return [];
+
+  const labels = ids.map((id) => {
+    const item = calendar.find((c) => c.id === id);
+    return item ? formatReelLabel(item) : null;
+  });
+
+  const missing = labels.filter((l) => !l).length;
+  if (missing === 0) return labels as string[];
+
+  const titleParts =
+    shootTitle && shootTitle.trim() && shootTitle !== 'تصوير'
+      ? shootTitle.split('•').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+  return ids.map((id, index) => {
+    const fromCalendar = calendar.find((c) => c.id === id);
+    if (fromCalendar) return formatReelLabel(fromCalendar);
+    if (titleParts[index]) return titleParts[index];
+    return unknownLabel;
+  });
+}
+
+function reelsForSelection(
+  calendar: CalendarReelItem[],
+  month: string,
+  selectedIds: string[],
+) {
+  const inMonth = calendar.filter((c) => itemInMonth(c.publishDate, c.createdAt, month));
+  const selectedOutside = selectedIds
+    .filter((id) => !inMonth.some((c) => c.id === id))
+    .map((id) => calendar.find((c) => c.id === id))
+    .filter((c): c is CalendarReelItem => Boolean(c));
+
+  const merged = new Map<string, CalendarReelItem>();
+  for (const item of [...inMonth, ...selectedOutside]) {
+    if (item.status === PENDING_STATUS || selectedIds.includes(item.id)) {
+      merged.set(item.id, item);
+    }
+  }
+  return [...merged.values()];
+}
+
+function RequiredShootingCell({
+  row,
+  calendarItems,
+  month,
+  canEdit,
+  unknownLabel,
+  selectLabel,
+  emptyLabel,
+  noPendingLabel,
+  onToggle,
+}: {
+  row: ShootRowState;
+  calendarItems: CalendarReelItem[];
+  month: string;
+  canEdit: boolean;
+  unknownLabel: string;
+  selectLabel: string;
+  emptyLabel: string;
+  noPendingLabel: string;
+  onToggle: (contentId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const labels = resolveReelLabels(row.contentCalendarIds, calendarItems, row.title, unknownLabel);
+  const options = reelsForSelection(calendarItems, month, row.contentCalendarIds);
+
+  return (
+    <>
+      <div className="space-y-2">
+        {labels.length ? (
+          <ul className="space-y-1.5">
+            {labels.map((label, i) => (
+              <li
+                key={`${row.id}-${i}`}
+                className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-2.5 py-2"
+              >
+                <Clapperboard className="mt-0.5 h-3.5 w-3.5 shrink-0 text-vega-cyan" />
+                <span className="text-sm leading-relaxed text-[var(--color-text)] break-words">{label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="text-sm text-[var(--color-text-secondary)]">{emptyLabel}</span>
+        )}
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1 rounded-lg border border-vega-cyan/35 px-2.5 py-1.5 text-xs font-semibold text-vega-cyan hover:bg-vega-cyan/10"
+          >
+            {selectLabel}
+          </button>
+        )}
+      </div>
+
+      {canEdit && (
+        <Modal open={open} onClose={() => setOpen(false)} title={selectLabel} size="lg">
+          {options.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-secondary)]">{noPendingLabel}</p>
+          ) : (
+            <ul className="max-h-[min(60vh,400px)] space-y-2 overflow-y-auto">
+              {options.map((item) => (
+                <li key={item.id}>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--color-border)] px-3 py-3 hover:border-vega-cyan/40 hover:bg-vega-cyan/5">
+                    <input
+                      type="checkbox"
+                      className="mt-1 shrink-0"
+                      checked={row.contentCalendarIds.includes(item.id)}
+                      onChange={() => onToggle(item.id)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-[var(--color-text)]">
+                        {formatReelLabel(item)}
+                      </span>
+                      {item.platform && (
+                        <span className="mt-0.5 block text-xs text-[var(--color-text-secondary)]">
+                          {item.platform}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
+    </>
+  );
 }
 
 function rowPayload(row: ShootRowState, clientId: string, calendar: CalendarReelItem[]) {
@@ -158,15 +300,6 @@ export function ShootManagementTable({
   const t = useTranslations('marketing');
   const tc = useTranslations('common');
   const [month, setMonth] = useState(currentMonthKey);
-
-  const pendingReels = useMemo(
-    () =>
-      calendarItems.filter(
-        (c) =>
-          c.status === PENDING_STATUS && itemInMonth(c.publishDate, c.createdAt, month),
-      ),
-    [calendarItems, month],
-  );
 
   const monthItems = useMemo(
     () => items.filter((item) => itemInMonth(item.scheduledAt, item.createdAt, month)),
@@ -257,6 +390,7 @@ export function ShootManagementTable({
       ...prev,
       {
         id: created.id,
+        title: 'تصوير',
         scheduledAt: defaultScheduled,
         modelId: '',
         photographerUserId: '',
@@ -377,39 +511,17 @@ export function ShootManagementTable({
                     )}
                   </td>
                   <td className="px-1 py-1 align-top">
-                    {canEdit ? (
-                      <div className="max-h-40 min-w-[200px] overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-1.5">
-                        {pendingReels.length === 0 ? (
-                          <p className="px-1 py-1 text-xs text-[var(--color-text-secondary)]">{t('noPendingContent')}</p>
-                        ) : (
-                          pendingReels.map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 hover:bg-vega-cyan/5"
-                            >
-                              <input
-                                type="checkbox"
-                                className="mt-1 shrink-0"
-                                checked={row.contentCalendarIds.includes(item.id)}
-                                onChange={() => toggleContent(row.id, item.id)}
-                              />
-                              <span className="text-xs leading-snug">{formatReelLabel(item)}</span>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    ) : (
-                      <span className={`${cellText} block whitespace-pre-wrap`}>
-                        {row.contentCalendarIds.length
-                          ? row.contentCalendarIds
-                              .map((id) => {
-                                const item = calendarItems.find((c) => c.id === id);
-                                return item ? formatReelLabel(item) : id;
-                              })
-                              .join('، ')
-                          : '—'}
-                      </span>
-                    )}
+                    <RequiredShootingCell
+                      row={row}
+                      calendarItems={calendarItems}
+                      month={month}
+                      canEdit={canEdit}
+                      unknownLabel={t('unknownReel')}
+                      selectLabel={t('selectReels')}
+                      emptyLabel={tc('noData')}
+                      noPendingLabel={t('noPendingContent')}
+                      onToggle={(contentId) => toggleContent(row.id, contentId)}
+                    />
                   </td>
                   {canDelete && (
                     <td className="px-1 py-1 text-center">

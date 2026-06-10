@@ -472,7 +472,9 @@
     "reelsToShoot": "Reels to shoot",
     "requiredShooting": "Required shooting",
     "addShootRow": "Add shoot row",
-    "noPendingContent": "No pending reels in the content calendar — set status to Pending first"
+    "noPendingContent": "No pending reels in the content calendar — set status to Pending first",
+    "selectReels": "Select reels",
+    "unknownReel": "Reel (unlinked)"
   },
   "media": {
     "title": "Media Production",
