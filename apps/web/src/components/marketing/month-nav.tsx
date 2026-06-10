@@ -13,7 +13,7 @@ export function MonthNav({ month, onChange }: MonthNavProps) {
   const locale = useLocale();
 
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 shadow-sm">
       <button
         type="button"
         onClick={() => onChange(shiftMonth(month, -1))}
@@ -23,14 +23,15 @@ export function MonthNav({ month, onChange }: MonthNavProps) {
         <ChevronRight className="h-5 w-5" />
       </button>
       <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-semibold text-vega-navy dark:text-vega-cyan">
+        <span className="text-base font-bold text-vega-navy dark:text-vega-cyan">
           {formatMonthLabel(month, locale)}
         </span>
         <input
           type="month"
+          dir="ltr"
           value={month}
           onChange={(e) => e.target.value && onChange(e.target.value)}
-          className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-xs"
+          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs [direction:ltr]"
         />
       </div>
       <button

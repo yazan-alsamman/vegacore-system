@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { MonthNav } from '@/components/marketing/month-nav';
 import { currentMonthKey, defaultDatetimeInMonth, itemInMonth } from '@/components/marketing/month-utils';
 import { api } from '@/lib/api';
@@ -100,10 +100,10 @@ function rowPayload(row: CalendarRowState, clientId: string) {
   };
 }
 
-const cellInput =
-  'w-full min-w-[120px] rounded border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none focus:border-vega-cyan/50 focus:bg-[var(--color-surface-secondary)]';
+const fieldBase =
+  'w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm leading-relaxed text-[var(--color-text)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--color-text-secondary)]/50 focus:border-vega-cyan/50 focus:ring-2 focus:ring-vega-cyan/15';
 
-const cellText = 'px-2 py-1.5 text-sm text-[var(--color-text)]';
+const ltrField = `${fieldBase} text-start [direction:ltr] [unicode-bidi:plaintext]`;
 
 function hrefForUrl(url: string): string | null {
   const trimmed = url.trim();
@@ -118,27 +118,60 @@ function formatPublishDate(value: string) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
 }
 
-function LinkCell({ url, label }: { url: string; label?: string }) {
+function StatusBadge({ label, status }: { label: string; status: CalendarStatus }) {
+  const tone =
+    status === 'PUBLISHED'
+      ? 'bg-vega-green/12 text-vega-green border-vega-green/25'
+      : status === 'REJECTED'
+        ? 'bg-vega-red/10 text-vega-red border-vega-red/25'
+        : 'bg-amber-500/12 text-amber-700 dark:text-amber-400 border-amber-500/25';
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${tone}`}>
+      {label}
+    </span>
+  );
+}
+
+function PlatformBadge({ platform }: { platform: string }) {
+  return (
+    <span className="inline-flex rounded-md bg-vega-navy/8 px-2 py-1 text-xs font-medium capitalize text-vega-navy dark:bg-vega-cyan/10 dark:text-vega-cyan">
+      {platform}
+    </span>
+  );
+}
+
+function ReadText({ value, multiline }: { value: string; multiline?: boolean }) {
+  if (!value.trim()) {
+    return <span className="text-sm text-[var(--color-text-secondary)]">—</span>;
+  }
+  return (
+    <p
+      className={`text-sm leading-relaxed text-[var(--color-text)] break-words ${
+        multiline ? 'whitespace-pre-wrap max-h-32 overflow-y-auto' : 'line-clamp-2'
+      }`}
+      title={value}
+    >
+      {value}
+    </p>
+  );
+}
+
+function LinkDisplay({ url }: { url: string }) {
   const href = hrefForUrl(url);
-  if (!href) return <span className={`${cellText} text-[var(--color-text-secondary)]`}>—</span>;
+  if (!href) return <span className="text-sm text-[var(--color-text-secondary)]">—</span>;
+  const display = url.trim();
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${cellText} inline-block max-w-[220px] truncate text-vega-cyan underline-offset-2 hover:underline`}
-      title={url}
+      dir="ltr"
+      className="block max-w-full truncate text-sm font-medium text-vega-cyan underline-offset-2 hover:underline [direction:ltr] [unicode-bidi:plaintext]"
+      title={display}
     >
-      {label || url}
+      {display}
     </a>
-  );
-}
-
-function TextCell({ value, multiline }: { value: string; multiline?: boolean }) {
-  return (
-    <span className={`${cellText} block ${multiline ? 'whitespace-pre-wrap' : 'truncate max-w-[200px]'}`}>
-      {value || '—'}
-    </span>
   );
 }
 
@@ -255,170 +288,204 @@ export function ContentCalendarTable({
     return t('statusPending');
   };
 
+  const thClass =
+    'sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-3.5 text-start text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]';
+  const tdClass = 'align-top border-b border-[var(--color-border)] px-3 py-3 last:border-b-0';
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <MonthNav month={month} onChange={setMonth} />
+
       {rows.length === 0 && !canEdit ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>
+        <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-6 py-12 text-center">
+          <p className="text-sm text-[var(--color-text-secondary)]">{tc('noData')}</p>
+        </div>
       ) : (
-      <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
-              <th className="px-2 py-3 text-center w-12">{t('colNumber')}</th>
-              <th className="px-2 py-3 text-start min-w-[140px]">{t('colIdea')}</th>
-              <th className="px-2 py-3 text-start min-w-[140px]">{t('colTitle')}</th>
-              <th className="px-2 py-3 text-start min-w-[160px]">{t('script')}</th>
-              <th className="px-2 py-3 text-start w-32">{tc('platform')}</th>
-              <th className="px-2 py-3 text-start w-44">{t('publishDate')}</th>
-              <th className="px-2 py-3 text-start min-w-[160px]">{t('publishVideoLink')}</th>
-              <th className="px-2 py-3 text-start w-36">{t('contentStatus')}</th>
-              <th className="px-2 py-3 text-start min-w-[160px]">{t('sourceLink')}</th>
-              {canDelete && <th className="px-2 py-3 w-10" />}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-vega-navy/[0.02]">
-                <td className="px-2 py-2 text-center text-[var(--color-text-secondary)] font-medium">
-                  {index + 1}
-                  {canEdit && saving[row.id] && <span className="block text-[10px] text-vega-cyan">…</span>}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      className={cellInput}
-                      value={row.idea}
-                      placeholder="—"
-                      onChange={(e) => updateRow(row.id, { idea: e.target.value })}
-                    />
-                  ) : (
-                    <TextCell value={row.idea} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      className={cellInput}
-                      value={row.title}
-                      placeholder="—"
-                      onChange={(e) => updateRow(row.id, { title: e.target.value })}
-                    />
-                  ) : (
-                    <TextCell value={row.title} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <textarea
-                      className={`${cellInput} min-h-[36px] resize-y`}
-                      value={row.script}
-                      placeholder="—"
-                      rows={1}
-                      onChange={(e) => updateRow(row.id, { script: e.target.value })}
-                    />
-                  ) : (
-                    <TextCell value={row.script} multiline />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <select
-                      className={cellInput}
-                      value={row.platform}
-                      onChange={(e) => updateRow(row.id, { platform: e.target.value as Platform })}
-                    >
-                      {PLATFORMS.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <TextCell value={row.platform} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      type="datetime-local"
-                      className={cellInput}
-                      value={row.publishDate}
-                      onChange={(e) => updateRow(row.id, { publishDate: e.target.value })}
-                    />
-                  ) : (
-                    <TextCell value={formatPublishDate(row.publishDate)} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      type="url"
-                      className={cellInput}
-                      value={row.publishVideoUrl}
-                      placeholder="https://"
-                      onChange={(e) => updateRow(row.id, { publishVideoUrl: e.target.value })}
-                    />
-                  ) : (
-                    <LinkCell url={row.publishVideoUrl} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <select
-                      className={cellInput}
-                      value={row.status}
-                      onChange={(e) => updateRow(row.id, { status: e.target.value as CalendarStatus })}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {statusLabel(s)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <TextCell value={statusLabel(row.status)} />
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  {canEdit ? (
-                    <input
-                      type="url"
-                      className={cellInput}
-                      value={row.sourceUrl}
-                      placeholder="https://"
-                      onChange={(e) => updateRow(row.id, { sourceUrl: e.target.value })}
-                    />
-                  ) : (
-                    <LinkCell url={row.sourceUrl} />
-                  )}
-                </td>
-                {canDelete && (
-                  <td className="px-1 py-1 text-center">
-                    <button
-                      type="button"
-                      onClick={() => void deleteRow(row.id)}
-                      className="rounded p-1.5 text-vega-red hover:bg-vega-red/10"
-                      title={tc('delete')}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1200px] border-collapse text-sm">
+              <colgroup>
+                <col className="w-12" />
+                <col className="w-[130px]" />
+                <col className="w-[150px]" />
+                <col className="w-[220px]" />
+                <col className="w-[120px]" />
+                <col className="w-[170px]" />
+                <col className="w-[180px]" />
+                <col className="w-[130px]" />
+                <col className="w-[180px]" />
+                {canDelete && <col className="w-12" />}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`${thClass} text-center`}>{t('colNumber')}</th>
+                  <th className={thClass}>{t('colIdea')}</th>
+                  <th className={thClass}>{t('colTitle')}</th>
+                  <th className={thClass}>{t('script')}</th>
+                  <th className={thClass}>{tc('platform')}</th>
+                  <th className={thClass}>{t('publishDate')}</th>
+                  <th className={thClass}>{t('publishVideoLink')}</th>
+                  <th className={thClass}>{t('contentStatus')}</th>
+                  <th className={thClass}>{t('sourceLink')}</th>
+                  {canDelete && <th className={thClass} />}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr
+                    key={row.id}
+                    className="transition-colors hover:bg-vega-cyan/[0.03] even:bg-[var(--color-surface-secondary)]/25"
+                  >
+                    <td className={`${tdClass} text-center`}>
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-vega-navy/8 text-xs font-bold text-vega-navy dark:bg-vega-cyan/15 dark:text-vega-cyan">
+                        {index + 1}
+                      </span>
+                      {canEdit && saving[row.id] && (
+                        <span className="mt-1 block text-[10px] font-medium text-vega-cyan">{t('saving')}</span>
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <input
+                          className={fieldBase}
+                          value={row.idea}
+                          placeholder={t('colIdea')}
+                          onChange={(e) => updateRow(row.id, { idea: e.target.value })}
+                        />
+                      ) : (
+                        <ReadText value={row.idea} />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <input
+                          className={fieldBase}
+                          value={row.title}
+                          placeholder={t('colTitle')}
+                          onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                        />
+                      ) : (
+                        <ReadText value={row.title} />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <textarea
+                          className={`${fieldBase} min-h-[88px] resize-y leading-relaxed`}
+                          value={row.script}
+                          placeholder={t('script')}
+                          rows={3}
+                          onChange={(e) => updateRow(row.id, { script: e.target.value })}
+                        />
+                      ) : (
+                        <ReadText value={row.script} multiline />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <select
+                          className={fieldBase}
+                          value={row.platform}
+                          onChange={(e) => updateRow(row.id, { platform: e.target.value as Platform })}
+                        >
+                          {PLATFORMS.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <PlatformBadge platform={row.platform} />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <input
+                          type="datetime-local"
+                          dir="ltr"
+                          className={ltrField}
+                          value={row.publishDate}
+                          onChange={(e) => updateRow(row.id, { publishDate: e.target.value })}
+                        />
+                      ) : (
+                        <span dir="ltr" className="block text-sm text-[var(--color-text)] [direction:ltr] [unicode-bidi:plaintext]">
+                          {formatPublishDate(row.publishDate)}
+                        </span>
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <input
+                          type="url"
+                          dir="ltr"
+                          className={ltrField}
+                          value={row.publishVideoUrl}
+                          placeholder="https://"
+                          onChange={(e) => updateRow(row.id, { publishVideoUrl: e.target.value })}
+                        />
+                      ) : (
+                        <LinkDisplay url={row.publishVideoUrl} />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <select
+                          className={fieldBase}
+                          value={row.status}
+                          onChange={(e) => updateRow(row.id, { status: e.target.value as CalendarStatus })}
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {statusLabel(s)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <StatusBadge label={statusLabel(row.status)} status={row.status} />
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      {canEdit ? (
+                        <input
+                          type="url"
+                          dir="ltr"
+                          className={ltrField}
+                          value={row.sourceUrl}
+                          placeholder="https://"
+                          onChange={(e) => updateRow(row.id, { sourceUrl: e.target.value })}
+                        />
+                      ) : (
+                        <LinkDisplay url={row.sourceUrl} />
+                      )}
+                    </td>
+                    {canDelete && (
+                      <td className={`${tdClass} text-center`}>
+                        <button
+                          type="button"
+                          onClick={() => void deleteRow(row.id)}
+                          className="rounded-lg p-2 text-vega-red transition-colors hover:bg-vega-red/10"
+                          title={tc('delete')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {canEdit && (
         <button
           type="button"
           onClick={() => void addRow()}
-          className="rounded-lg border border-dashed border-vega-cyan/40 px-4 py-2 text-sm font-medium text-vega-cyan hover:bg-vega-cyan/10"
+          className="inline-flex items-center gap-2 rounded-lg bg-vega-cyan px-4 py-2.5 text-sm font-semibold text-vega-navy shadow-sm transition-colors hover:bg-vega-cyan/90"
         >
-          + {t('addRow')}
+          <Plus className="h-4 w-4" />
+          {t('addRow')}
         </button>
       )}
     </div>

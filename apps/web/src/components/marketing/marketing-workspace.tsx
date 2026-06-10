@@ -58,17 +58,21 @@ export function MarketingWorkspace({ clientId }: MarketingWorkspaceProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-[var(--color-text-secondary)]">{t('description')}</p>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-4 py-3 sm:px-5">
+        <p className="text-sm font-medium text-[var(--color-text)]">{t('description')}</p>
+      </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 border-b border-[var(--color-border)] pb-1">
         {visibleTabs.map((vt) => (
           <button
             key={vt.id}
             type="button"
             onClick={() => setTab(vt.id)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              activeTab === vt.id ? 'bg-vega-cyan/15 text-vega-cyan' : 'bg-[var(--color-surface-secondary)]'
+            className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activeTab === vt.id
+                ? 'bg-vega-navy text-white dark:bg-vega-cyan dark:text-vega-navy'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text)]'
             }`}
           >
             {vt.label}
