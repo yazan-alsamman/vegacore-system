@@ -124,12 +124,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
   }, [isPortalClient, user?.clientId, id, router]);
 
   useEffect(() => {
-    if (searchParams.get('tab') === 'marketing' && canMarketingTab) {
-      setTab('marketing');
-    } else if (isPortalClient && canMarketingTab) {
-      setTab('marketing');
-    }
-  }, [searchParams, canMarketingTab, isPortalClient]);
+    const q = searchParams.get('tab');
+    if (q === 'marketing' && canMarketingTab) setTab('marketing');
+    else if (q === 'package') setTab('package');
+    else if (q === 'files') setTab('files');
+    else if (q === 'financial' && canRead('finance')) setTab('financial');
+    else if (q === 'info') setTab('info');
+  }, [searchParams, canMarketingTab, canRead]);
 
   const client = data?.client;
   const pkg = data?.package;
@@ -138,7 +139,15 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
 
   const fin = useClientFinancialEditor(id, data?.invoices || [], token, () => refetch());
 
-  const tabs: { id: Tab; label: string }[] = isAccountManager
+  const tabs: { id: Tab; label: string }[] = isPortalClient
+    ? [
+        { id: 'info', label: tc('tabInfo') },
+        { id: 'package', label: tc('tabPackage') },
+        { id: 'files', label: tc('tabFiles') },
+        ...(canMarketingTab ? [{ id: 'marketing' as Tab, label: tc('tabMarketing') }] : []),
+        ...(canRead('finance') ? [{ id: 'financial' as Tab, label: tc('tabFinancial') }] : []),
+      ]
+    : isAccountManager
     ? [
         { id: 'info', label: tc('tabInfo') },
         { id: 'package', label: tc('tabPackage') },
@@ -154,10 +163,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
       ];
 
   useEffect(() => {
+    if (isPortalClient && !tabs.some((tb) => tb.id === tab)) {
+      setTab('info');
+    }
     if (isAccountManager && !['info', 'package', 'marketing'].includes(tab)) {
       setTab('info');
     }
-  }, [isAccountManager, tab]);
+  }, [isPortalClient, isAccountManager, tab, tabs]);
 
   return (
     <DashboardLayout
@@ -214,13 +226,15 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
               <SectionCard
                 title={tc('clientData')}
                 actions={
-                  <ClientInfoEditor
-                    clientId={id}
-                    client={client}
-                    portalUser={data?.portalUser}
-                    token={token}
-                    onSaved={refetch}
-                  />
+                  !isPortalClient ? (
+                    <ClientInfoEditor
+                      clientId={id}
+                      client={client}
+                      portalUser={data?.portalUser}
+                      token={token}
+                      onSaved={refetch}
+                    />
+                  ) : undefined
                 }
               >
                 <InfoRow label={tc('ownerName')} value={String(client.ownerName)} />
@@ -230,27 +244,30 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
                 <InfoRow label={tc('country')} value={String(client.country || '')} />
                 <InfoRow label={tc('businessType')} value={String(client.businessType || '')} />
                 <InfoRow label={tc('startDate')} value={fmtDate(client.onboardingDate)} />
-                {!isPortalClient && (
-                  <>
-                    <InfoRow
-                      label={tcl('classification')}
-                      value={classificationLabel(tcl, String(client.classification || 'NORMAL'))}
-                    />
-                    <InfoRow
-                      label={tcl('marketingManager')}
-                      value={
-                        marketingManagerLabel(
-                          client.marketingManager as { firstName: string; lastName: string } | null,
-                        ) || tcl('noMarketingManager')
-                      }
-                    />
-                    {!isAccountManager && (
-                      <InfoRow
-                        label={tcl('portalLogin')}
-                        value={data?.portalUser?.email || tc('portalNotSet')}
-                      />
-                    )}
-                  </>
+                <InfoRow
+                  label={tcl('classification')}
+                  value={classificationLabel(tcl, String(client.classification || 'NORMAL'))}
+                />
+                <InfoRow
+                  label={tcl('marketingManager')}
+                  value={
+                    marketingManagerLabel(
+                      client.marketingManager as { firstName: string; lastName: string } | null,
+                    ) || tcl('noMarketingManager')
+                  }
+                />
+                {(isPortalClient || !isAccountManager) && (
+                  <InfoRow
+                    label={tcl('portalLogin')}
+                    value={
+                      (isPortalClient
+                        ? data?.portalUser?.email || user?.email
+                        : data?.portalUser?.email) || tc('portalNotSet')
+                    }
+                  />
+                )}
+                {client.notes != null && String(client.notes) !== '' && (
+                  <InfoRow label={tc('notes')} value={String(client.notes)} />
                 )}
               </SectionCard>
               <SocialMediaSection
